@@ -456,7 +456,7 @@
 		getLoadingDiv(target) {
 			return this._c({
 				nodeType: 'div',
-				style: target == 'recommend' ? 'position:absolute;top:0;left:0;background:rgba(255,255,255,.4);width:100%;height:100%;min-height:240px;border-radius:4px;font-size:3rem;text-align:center;z-index:50' : 'text-align:center;',
+				style: target == 'recommend' ? 'position:absolute;top:0;left:0;background:rgba(255,255,255,.8);width:100%;height:100%;min-height:240px;border-radius:4px;font-size:3rem;text-align:center;z-index:50' : 'text-align:center;',
 				className: target == 'recommend' ? 'load-state spread-module' : 'load-state',
 				innerHTML: '<p class="loading" style="line-height:240px"><svg style="margin:0 10px 0 0;width:2rem;height:2rem;transform: rotate(0deg);animation:turn 1s linear infinite;transition: transform .5s ease"><use xlink:href="#widget-roll"></use></svg>正在加载...</p>'
 			});
@@ -767,6 +767,9 @@
 
 	//初始化
 	function init() {
+		if(location.pathname != '/'){
+	      		return
+	    	}
 		if (document.querySelector('.bili-layout')) {
 			element.isNew = 1;
 		} else if (document.querySelector('#i_cecream')) {
