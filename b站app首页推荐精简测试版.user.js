@@ -39,6 +39,7 @@
 			return mfc;
 		})(),
 		accessKey: GM_getValue('biliAppHomeKey'),
+    refresh: 1,
 		storageAccessKey(key) {
 			if (key) {
 				GM_setValue('biliAppHomeKey', this.accessKey = key);
@@ -108,13 +109,14 @@
 					{
 						nodeType: 'div',
 						style: 'margin: 10px 0;',
-						childs: ['<label style="margin-right: 5px;">保存推荐数量:</label>', {
+						childs: ['<label style="margin-right: 5px;">新版推荐数量:</label>', {
 							nodeType: 'input',
 							type: 'number',
 							value: this.historyLimit,
 							min: 0,
-							step: 10,
-							onchange: ({target}) => this.setHistoryLimit(target.value),
+              max: 10,
+							step: 1,
+							onchange: ({target}) => this.setHistoryLimit(target.value > 10 ? 10 : target.value),
 							style: 'width:50px'
 						}]
 					},
@@ -315,7 +317,7 @@
 			let day = date.getDate();
 			return `· ${year}-${month < 10 ? '0' + month : month}-${day < 10 ? '0' + day : day}`
 		},
-		previewImage(pv, target, width, height, dmlength) {
+		previewImage(pv, target, width, height) {
 			if (!pv || !target || !target.cover) return;
 			width = +width <= 0 ? 0 : +width;
 			let pWidth = target.parentNode.offsetWidth,
@@ -329,7 +331,7 @@
 			if (pv.classList.contains('van-framepreview')) {
 				if (pv.classList.contains('ranking')) y += 10;
 				pv.style = `background-image: url(${url});background-position: ${x}px ${y}px;background-size: ${size}px;opacity: 1;height: ${height}px`;
-				pv.innerHTML = `<div style="color:#fff;text-shadow:1px 1px 2px #000;display:inline">分区:${target.dataset.group}&nbsp;&nbsp;预览弹幕:${dmlength}</div><div class="van-fpbar-box"><span style="width: ${percent * 100}%;display:block;"></span></div >`;
+				pv.innerHTML = `<div class="van-fpbar-box"><span style="width: ${percent * 100}%;display:block;"></span></div>`;
 			} else {
 				pv.innerHTML = `<div class="cover" style="background-image: url(${url});background-position: ${x}px ${y}px;background-size: ${size}px;"></div><div class="progress-bar van-fpbar-box"><span style="width: ${percent * 100}%;display:block;"></span></div>`
 			}
@@ -345,7 +347,9 @@
 			}
 		},
 		preview(ev) {
-			if (!ev.target) return;
+			if (!ev.target){
+        return
+      };
 			let deep = 1,
 					target = ev.target;
 			let pv, danmu, vheight;
@@ -355,7 +359,7 @@
 			pv = target.querySelector('.cover-preview-module');
 			danmu = target.querySelector('.danmu-module');
 			vheight = target.clientHeight;
-
+      ev.stopPropagation();
 			if (!pv || !danmu) return;
 			if (ev.type == 'mouseenter') {
 				target.timmer = setTimeout(() => {
@@ -394,13 +398,13 @@
 									item.style = `left: -${item.offsetWidth + 10}px;transition: left 5s linear 0s;`;
 								};
 								if(!target.timmer) return;
-								tools.previewImage(pv,target,ev.offsetX,vheight,danmu.data.length);
+								tools.previewImage(pv,target,ev.offsetX,vheight);
 								tools.previewDanmu(danmu, true);
 								delete target.timmer;
 							})
 							.catch(err => console.log(err))
 					} else {
-						tools.previewImage(pv,target,ev.offsetX,vheight,danmu.data.length);
+						tools.previewImage(pv,target,ev.offsetX,vheight);
 						tools.previewDanmu(danmu, true);
 						delete target.timmer;
 					}
@@ -420,7 +424,7 @@
 				if(danmu.data){
 					length = danmu.data.length
 				}
-				tools.previewImage(pv,target,ev.offsetX,vheight,length);
+				tools.previewImage(pv,target,ev.offsetX,vheight);
 			}
 		},
 		delCommentAttr(div) {
@@ -532,15 +536,48 @@
 		const recommends = [];
 
 		//显示历史推荐
-		if (setting.historyData) updateRecommend(setting.historyData);
+		// if (setting.historyData) updateRecommend(setting.historyData);
 
 		//加载新推荐
 		// for (let i = 0; i < setting.autoFreshCount; i++) getRecommend();
 		showRecommendList(setting.autoFreshCount, listBox);
 
+    //获取推荐视频数据 new
+    function getRecommendNew() {
+      return new Promise((resolve, reject) => {
+        GM_xmlhttpRequest({
+          method: 'GET',
+          url: `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${setting.refresh}&fresh_idx_1h=${setting.refresh}`,
+          onload: res => {
+            try {
+              const rep = JSON.parse(res.response);
+              // console.log('new aip', rep);
+              if (rep.code != 0) {
+                // loadingDiv.firstChild.innerText = `请求app首页失败 code ${rep.code}</br>msg ${rep.message}`;
+                reject('请求app首页失败');
+                return console.error('请求app首页失败', rep);
+              }
+              // setting.pushHistory(rep.data);
+              // updateRecommend(rep.data);
+              resolve(rep.data.item)
+              // loadingDiv.style.display = 'none';
+            } catch(e) {
+              // loadingDiv.firstChild.innerText = `请求app首页发生错误 ${e}`;
+              console.error(e, '请求app首页发生错误');
+              reject(e)
+            }
+          },
+          onerror: e => {
+            // loadingDiv.firstChild.innerText = `请求app首页发生错误 ${e}`;
+            console.error(e, '请求app首页发生错误');
+            reject(e)
+          }
+        })
+      })
+    }  
 		//获取推荐视频数据
 		function getRecommend() {
-			return new Promise((resolve, reject) => {
+      return new Promise((resolve, reject) => {
 				GM_xmlhttpRequest({
 					method: 'GET',
 					url: 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=' + (Date.now() / 1000).toFixed(0) + (setting.accessKey ? '&access_key=' + setting.accessKey: ''),
@@ -576,6 +613,15 @@
 			let result = [];
 			let loadingDiv = element.getLoadingDiv('recommend');
 			parentBox.insertAdjacentElement('afterBegin', loadingDiv);
+      try {
+        let resDataNew = await getRecommendNew();
+        let newData = new2old(resDataNew, setting.historyLimit);
+        setting.pushHistory(newData);
+        result = [...result, ...newData];
+        setting.refresh += 1
+      } catch (error) {
+        console.log(error)
+      }
 			while (times--) {
 				try {
 					let resData = await getRecommend();
@@ -585,15 +631,46 @@
 					console.log(err)
 				}
 			}
-			updateRecommend(result);
 			console.log(result)
+      updateRecommend(result);
 		}
+
+    // 新版转换老版格式
+    function new2old(data, showLength){
+      let _data = data.slice(0, showLength > 10 ? 10 : showLength);
+      console.log(data);
+      return _data.map((item) => {
+        return {
+          autoplay: 1,
+          cid: item.cid,
+          cover: item.pic,
+          ctime: item.pubdate,
+          danmaku: item.stat.danmaku,
+          desc: `${item.stat.danmaku}弹幕`,
+          duration: item.duration,
+          face: item.owner.face,
+          goto: item.goto,
+          idx: item.id,
+          like: item.stat.like,
+          mid: item.owner.mid,
+          name: item.owner.name,
+          param: item.id,
+          play: item.stat.view,
+          title: item.title,
+          tname: '',
+          uri: item.uri,
+          rcmd_reason: {
+            content: item.rcmd_reason.reason_type == 1 ? '已关注' : ''
+          }
+        }
+      })
+    }
 
 		//新版创建视频卡
 		function createNewRecommend(data, index) {
 			return element._c({
 				nodeType: 'div',
-				style: 'display:block!important',
+				style: `display: block!important`,
 				className: 'bili-video-card',
 				childs: ['<div class="bili-video-card__skeleton hide"><div class="bili-video-card__skeleton--cover"></div><div class="bili-video-card__skeleton--info"><div class="bili-video-card__skeleton--face"></div><div class="bili-video-card__skeleton--right"><p class="bili-video-card__skeleton--text"></p><p class="bili-video-card__skeleton--text short"></p><p class="bili-video-card__skeleton--light"></p></div></div></div>', {
 					nodeType: 'div',
@@ -614,33 +691,44 @@
 							group: data.tname
 						},
 						onmouseenter: data.goto == 'av' && tools.preview,
-						onmouseleave: data.goto == 'av' && tools.preview,
-						onmousemove: data.goto == 'av' && tools.preview,
+            onmouseleave: data.goto == 'av' && tools.preview,
+            onmousemove: data.goto == 'av' && tools.preview,
 						childs: [
-							`<div class="bili-video-card__image __scale-player-wrap">
-								<div class="bili-video-card__image--wrap">
-									<picture class="v-img bili-video-card__cover">
-										<source srcset="${data.cover.replace('http:','')}@672w_378h_1c_100q.webp" type="image/webp">
-										<img src="${data.cover.replace('http:','')}@672w_378h_1c_100q" alt="${data.title}" loading="eager" onload=""/>
-									</picture>
-									<div class="v-inline-player"></div>
-								</div>
-								<div class="bili-video-card__mask">
-									<div class="bili-video-card__stats">
-										<div class="bili-video-card__stats--left">
-											<span class="bili-video-card__stats--item">
-												<svg class="bili-video-card__stats--icon"><use xlink:href="#widget-play-count"></use></svg>
-												<span class="bili-video-card__stats--text">${tools.formatNumber(data.play)}</span>
-											</span>
-											<span class="bili-video-card__stats--item">
-												<svg class="bili-video-card__stats--icon"><use xlink:href="#widget-agree"></use></svg>
-												<span class="bili-video-card__stats--text">${tools.formatNumber(data.like)}</span>
-											</span>
-										</div >
-										<span class="bili-video-card__stats__duration">${data.duration && tools.formatNumber(data.duration, 'time') || ''}</span>
-									</div>
-								</div>
-							</div>`,
+              {
+                nodeType: 'div',
+                className: `bili-video-card__image __scale-player-wrap`,
+                childs: [
+                  `<div class="bili-video-card__image--wrap">
+                    <picture class="v-img bili-video-card__cover">
+                      <source srcset="${data.cover.replace('http:','')}@672w_378h_1c_100q.webp" type="image/webp">
+                      <img src="${data.cover.replace('http:','')}@672w_378h_1c_100q" alt="${data.title}" loading="eager" onload=""/>
+                    </picture>
+                    <div class="v-inline-player"></div>
+                  </div>
+                  <div class="bili-video-card__mask">
+                    <div style="position:absolute;bottom:25px;left:8px;padding:2px 8px;background:${data.badge ? '#ff8f00' : data.tname ? '#fff' : '#ff005d'};font-size:12px;color:${data.badge ? '#fff' : '#333'}">${data.badge||data.tname||''}</div>
+                    <div class="bili-video-card__stats">
+                      <div class="bili-video-card__stats--left">
+                        <span class="bili-video-card__stats--item">
+                          <svg class="bili-video-card__stats--icon"><use xlink:href="#widget-play-count"></use></svg>
+                          <span class="bili-video-card__stats--text">${tools.formatNumber(data.play)}</span>
+                        </span>
+                        <span class="bili-video-card__stats--item">
+                          <svg class="bili-video-card__stats--icon"><use xlink:href="#widget-agree"></use></svg>
+                          <span class="bili-video-card__stats--text">${tools.formatNumber(data.like)}</span>
+                        </span>
+                        <span class="bili-video-card__stats--item">
+                          <svg class="bili-video-card__stats--icon"><use xlink:href="#widget-video-danmaku"></use></svg>
+                          <span class="bili-video-card__stats--text">${tools.formatNumber(data.danmaku)}</span>
+                        </span>
+                      </div >
+                      <span class="bili-video-card__stats__duration">${data.duration && tools.formatNumber(data.duration, 'time') || ''}</span>
+                    </div>
+                  </div>`
+                ]
+              },
+							// `<div class="bili-video-card__image __scale-player-wrap">
+							// </div>`,
 							'<div class="cover-preview-module van-framepreview"></div><div class="danmu-module van-danmu"></div>',
 							(data.dislike_reasons && setting.accessKey) ? {
 								nodeType: 'div',
@@ -663,7 +751,7 @@
 						]
 					},
 					`<div class="bili-video-card__info __scale-disable">
-						<a href="https://space.bilibili.com/${data.mid}" target="_blank" data-idx="${index}">
+            <a href="https://space.bilibili.com/${data.mid}" target="_blank" data-idx="${index}">
 							<div class="v-avatar bili-video-card__avatar">
 								<picture class="v-img v-avatar__face">
 									<source srcset="${data.face.replace('http:','')}@72w_72h.webp" type="image/webp">
@@ -676,6 +764,7 @@
 								<h3 class="bili-video-card__info--tit" title="${data.title}">${data.title}</h3>
 							</a>
 							<p class="bili-video-card__info--bottom" style="${(data.rcmd_reason && data.rcmd_reason.content == '已关注') ? 'color:#f00' : data.badge ? 'color:#ff8f00' : ''}">
+                <svg class="bili-video-card__info--owner__up"><use xlink:href="#widget-up"></use></svg>
 								<a class="bili-video-card__info--owner" href="//space.bilibili.com/${data.mid}" target="_blank" data-idx=${index}">
 								<span class="bili-video-card__info--author">${data.name || data.badge + ' - ' + data.desc}</span>
 								<span class="bili-video-card__info--date">${tools.returnDateTxt(data.ctime)}</span></a>
@@ -690,13 +779,26 @@
 		function updateRecommend(datas) {
 			const point = listBox.firstChild;
 			let index = 0;
+      let doms = null;
+      let forLength = 0;
+      let baseIndex = setting.pageLimit;
 			datas.forEach(data => {
 				const recommend = createNewRecommend(data, index);
 				recommends.push(point.insertAdjacentElement('beforeBegin', recommend));
 				index++
 			});
 			//移除多余的显示内容
-			while (setting.pageLimit && recommends.length > setting.pageLimit) listBox.removeChild(recommends.shift());
+      // while (setting.pageLimit && recommends.length > setting.pageLimit) listBox.removeChild(recommends.shift());
+      doms = listBox.childNodes;
+      forLength = doms.length - 1 - listBox.querySelectorAll('.load-state').length - setting.pageLimit;
+      while(forLength > 0){
+        if(doms[baseIndex].className == 'bili-video-card'){
+          listBox.removeChild(doms[baseIndex]);
+          forLength--
+        }else{
+          baseIndex++
+        }
+      }
 			if(listBox.querySelector('.load-state')){listBox.removeChild(listBox.querySelector('.load-state'))}
 		}
 
@@ -768,8 +870,8 @@
 	//初始化
 	function init() {
 		if(location.pathname != '/'){
-	      		return
-	    	}
+      return
+    }
 		if (document.querySelector('.bili-layout')) {
 			element.isNew = 1;
 		} else if (document.querySelector('#i_cecream')) {
@@ -779,7 +881,7 @@
 		try {
 			setting.init();
 			InitRecommend();
-			window.addEventListener("beforeunload", () => setting.saveHistory())
+			// window.addEventListener("beforeunload", () => setting.saveHistory())
 		} catch(e) {
 			console.error(e);
 		}
