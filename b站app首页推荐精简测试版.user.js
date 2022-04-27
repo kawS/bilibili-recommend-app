@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站app首页推荐精简测试版
 // @namespace    kaws
-// @version      0.1
+// @version      0.3
 // @description  网页端首页添加APP首页推荐、可选提交不喜欢的视频 原作者indefined
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -574,7 +574,7 @@
           }
         })
       })
-    }  
+    }
 		//获取推荐视频数据
 		function getRecommend() {
       return new Promise((resolve, reject) => {
@@ -706,7 +706,7 @@
                     <div class="v-inline-player"></div>
                   </div>
                   <div class="bili-video-card__mask">
-                    <div style="position:absolute;bottom:25px;left:8px;padding:2px 8px;background:${data.badge ? '#ff8f00' : data.tname ? '#fff' : '#ff005d'};font-size:12px;color:${data.badge ? '#fff' : '#333'}">${data.badge||data.tname||''}</div>
+                    <div style="position:absolute;bottom:25px;left:8px;padding:0 2px;background:${data.badge ? '#ff8f00' : data.tname ? '#fff' : '#ff005d'};height:18px;line-height:18px;font-size:12px;color:${data.badge ? '#fff' : data.tname ? '#333' : '#fff'}">${data.badge||data.tname||'官方新版推荐'}</div>
                     <div class="bili-video-card__stats">
                       <div class="bili-video-card__stats--left">
                         <span class="bili-video-card__stats--item">
