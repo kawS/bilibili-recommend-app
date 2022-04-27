@@ -324,7 +324,7 @@
 					data = target.cover,
 					percent = width / pWidth,
 					index = Math.floor(percent * data.index.length),
-					url = data.image[Math.floor(index / data.img_x_len / data.img_y_len)],
+					url = data.image[Math.floor(index / data.img_x_len / data.img_y_len)].replace('bimp','boss'),
 					size = pWidth * data.img_x_len,
 					y = Math.floor(index / data.img_x_len) * -pWidth / data.img_x_size * data.img_y_size,
 					x = (index % target.cover.img_x_len) * -pWidth;
