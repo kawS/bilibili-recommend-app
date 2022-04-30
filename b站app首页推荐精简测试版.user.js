@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐精简测试版
 // @namespace    kasw
-// @version      0.1
+// @version      0.5
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -117,7 +117,7 @@
   }
   // loading
   function showLoading(minHeight){
-    $list.html(`
+    $list.prepend(`
       <div class="load-state spread-module" style="min-height:${minHeight}px">
         <p class="loading" style="line-height:${minHeight / 2}px">
           <svg><use xlink:href="#widget-roll"></use></svg>正在加载...
@@ -156,29 +156,39 @@
       getRecommendList();
     })
     $list.on('mouseenter', '.bili-video-card__image', function(e){
+      e.stopPropagation();
+      let rect = e.currentTarget.getBoundingClientRect();
       let $this = $(this);
       if($this.data('go') == 'av'){
         $this.find('.bili-watch-later').stop().fadeIn();
         $this.find('.v-inline-player').addClass('mouse-in visible');
-        getPreviewImage($this, e)
+        getPreviewImage($this, e.clientX - rect.left)
       }
-    }).on('mouseleave', '.bili-video-card__image', function(){
+    }).on('mouseleave', '.bili-video-card__image', function(e){
+      e.stopPropagation();
       let $this = $(this);
       if($this.data('go') == 'av'){
         $this.find('.bili-watch-later').stop().fadeOut();
         $this.find('.v-inline-player').removeClass('mouse-in visible');
       }
     }).on('mousemove', '.bili-video-card__image', function(e){
+      e.stopPropagation();
+      let rect = e.currentTarget.getBoundingClientRect();
       let $this = $(this);
       if($this.data('go') == 'av'){
         if($this[0].pvData){
-          setPosition($this, e, $this[0].pvData)
+          // if(e.target.className == 'bili-watch-later'){
+          //   return
+          // }
+          setPosition($this, e.clientX - rect.left, $this[0].pvData)
         }
       }
-    }).on('mouseenter', '.bili-watch-later', function(){
+    }).on('mouseenter', '.bili-watch-later', function(e){
+      e.stopPropagation();
       let $this = $(this);
       $this.find('span').stop().fadeIn()
-    }).on('mouseleave', '.bili-watch-later', function(){
+    }).on('mouseleave', '.bili-watch-later', function(e){
+      e.stopPropagation();
       let $this = $(this);
       $this.find('span').stop().fadeOut()
     }).on('click', '.bili-watch-later', function(){
@@ -227,7 +237,7 @@
     $iframe.appendTo($('body'));
     let timeout = setTimeout(() => {
       $iframe.remove();
-      el.find('span').text('删除授权');;
+      el.find('span').text('获取授权');;
       toast('获取授权超时')
     }, 5000);
     window.onmessage = ev => {
@@ -276,8 +286,8 @@
   }
 
   async function getRecommendList(){
-    options.itemHeight = $('.bili-grid').eq(0).find('.bili-video-card').height() * 4;
-    $('#recommend-list').css('min-height', options.itemHeight + 'px');
+    options.itemHeight = $('.bili-grid').eq(0).find('.bili-video-card').height() * 4 + 20 * 3;
+    // $('#recommend-list').css('min-height', options.itemHeight + 'px');
     showLoading(options.itemHeight);
     let url1 = `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`;
     let url2 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=' + ((Date.now() / 1000).toFixed(0) + Math.round(Math.random() * 100)) + (options.accessKey ? '&access_key=' + options.accessKey : '');
@@ -467,7 +477,7 @@
     }
     setPosition(el, e, pvData)
   }
-  function setPosition(el, mouse, pvData){
+  function setPosition(el, mouseX, pvData){
     let $tarDom = el.find('.v-inline-player');
     let duration = el.data('duration');
     let width = $tarDom.width();
@@ -477,9 +487,9 @@
     let onePageImgs = pvData.img_x_len * pvData.img_y_len;
     let rIndexList = pvData.index.slice(1);
     let pageSize = Math.ceil(rIndexList.length / onePageImgs);
-    console.log(pvData);
+    // console.log(pvData);
     // 寻点
-    let percent = mouse.offsetX / width;
+    let percent = mouseX / width;
     if (percent < 0) percent = 0;
     if (percent > 1) percent = 1;
     let tempSec = Math.floor((duration || 0) * percent);
@@ -491,12 +501,17 @@
         return false
       }
     })
-    if(tempSec >= rIndexList[rIndexList.length - 1]){
-      durIndex = rIndexList.length - 1
+    if(durIndex != -1){
+
+    }else{
+      if(tempSec >= rIndexList[rIndexList.length - 1]){
+        durIndex = Math.floor(percent * rIndexList.length) - 1
+      }
+      if(durIndex <= 0){
+        durIndex = 0
+      }
     }
-    if(tempSec <= 0){
-      durIndex = 0
-    }
+    
     let page = Math.floor(durIndex / (pvData.img_x_len * pvData.img_y_len));
     let imgUrl = pvData.image[page];
     // 坐标
@@ -507,7 +522,7 @@
     let y = Math.floor(imgIndex / (pvData.img_x_len)) * height;
     let imgY = (Math.floor(imgIndex / pvData.img_x_len)) + 1;
     let imgX = imgIndex - (imgY - 1) * pvData.img_x_len;
-    console.log(_index, durIndex, x, y, (imgX-1) * width, (imgY-1) * height);
+    // console.log(_index, durIndex, x, y, (imgX-1) * width, (imgY-1) * height);
     // 进度条
     let bar = percent * 100;
     let $pvbox = $tarDom.find('pv-box');
