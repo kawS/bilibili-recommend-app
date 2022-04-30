@@ -21,6 +21,7 @@
 // @run-at       document-idle
 
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js
+// @require      https://cdn.jsdelivr.net/npm/js-md5@0.7.3/src/md5.min.js
 
 // @license      MIT
 // ==/UserScript==
@@ -125,7 +126,7 @@
   }
   // 事件
   function initEvent(){
-    $('#JaccessKey').on('click', () => {
+    $('#JaccessKey').on('click', function(){
       let $this = $(this);
       let type = $this.text().trim();
       if(isWait){
