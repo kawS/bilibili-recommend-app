@@ -18,6 +18,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_deleteValue
+// @grant        GM_setClipboard
 // @run-at       document-idle
 
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js
@@ -50,6 +51,9 @@
     initStyle();
     intiHtml();
     initEvent();
+    if(options.accessKey){
+      $('#JaccessKey').hide()
+    }
     getRecommendList();
     console.log(options)
   }
@@ -75,7 +79,8 @@
         .load-state{position:absolute;top:0;left:0;background:rgba(255,255,255,.8);width:100%;height:100%;min-height:240px;border-radius:4px;font-size:3rem;text-align:center;z-index:50}
         .load-state .loading{line-height:240px}
         .load-state .loading svg{margin:0 10px 0 0;width:2rem;height:2rem;transform: rotate(0deg);animation:turn 1s linear infinite;transition: transform .5s ease}
-        .toast{position: fixed;top: 50%;left: 50%;z-index: 999999;margin-left: -180px;padding: 12px 24px;font-size: 14px;background: rgba(0,0,0,.8);width: 360px;border-radius: 6px;color: #fff;text-align: center}
+        .toast{position: fixed;top: 30%;left: 50%;z-index: 999999;margin-left: -180px;padding: 12px 24px;font-size: 14px;background: rgba(0,0,0,.8);width: 360px;border-radius: 6px;color: #fff;text-align: center}
+        .BBDown{margin-top: 4px;width: 60%;line-height: 1;font-size: 12px;display: inline-block;}
       </style>`;
     $('head').append(style)
   }
@@ -100,7 +105,7 @@
             </div>
           </div>
           <div class="eva-extension-body" id="recommend-list">
-            
+
           </div>
         </div>
       </section>`;
@@ -195,6 +200,17 @@
       let $this = $(this);
       watchlater($this);
       return false
+    }).on('click', '.BBDown', function(){
+      let $this = $(this);
+      let id = $this.data('id');
+      let isGo = /\//.test(id);
+      if(isGo){
+        let arr = id.split('/');
+        id = arr[arr.length - 1]
+      }
+      GM_setClipboard(`BBDown -app -token ${options.accessKey} -mt --add-dfn-subfix -ia -p 1 "${id}"`);
+      toast('复制命令成功')
+      return
     })
   }
   function setSize(width){
@@ -382,14 +398,17 @@
               </div>
             </a>
             <div class="bili-video-card__info __scale-disable">
-              <a href="https://space.bilibili.com/${data.mid}" target="_blank">
-                <div class="v-avatar bili-video-card__avatar">
-                  <picture class="v-img v-avatar__face">
-                    <source srcset="${data.face.replace('http:','')}@72w_72h.webp" type="image/webp"/>
-                    <img src="${data.face.replace('http:','')}@72w_72h" alt="${data.name||data.badge}" loading="lazy" onload=""/>
-                  </picture>
-                </div>
-              </a>
+              <div>
+                <a href="https://space.bilibili.com/${data.mid}" target="_blank">
+                  <div class="v-avatar bili-video-card__avatar">
+                    <picture class="v-img v-avatar__face">
+                      <source srcset="${data.face.replace('http:','')}@72w_72h.webp" type="image/webp"/>
+                      <img src="${data.face.replace('http:','')}@72w_72h" alt="${data.name||data.badge}" loading="lazy" onload=""/>
+                    </picture>
+                  </div>
+                </a>
+              <a href="javascript:;" class="BBDown" data-id="${data.goto=='av' ? data.param : data.uri}">BBDown下载</a>
+              </div>
               <div class="bili-video-card__info--right">
                 <a href="${data.goto=='av'?'/video/av'+data.param:data.uri}" target="_blank">
                   <h3 class="bili-video-card__info--tit" title="${data.title}">${data.title}</h3>
@@ -492,30 +511,10 @@
     let percent = mouseX / width;
     if (percent < 0) percent = 0;
     if (percent > 1) percent = 1;
-    let tempSec = Math.floor((duration || 0) * percent);
-    let durIndex = rIndexList.findIndex((val, index, arr) => {
-      const nextVal = arr[index + 1];
-      if (val <= tempSec && tempSec < nextVal) {
-        return true
-      } else {
-        return false
-      }
-    })
-    if(durIndex != -1){
-
-    }else{
-      if(tempSec >= rIndexList[rIndexList.length - 1]){
-        durIndex = Math.floor(percent * rIndexList.length) - 1
-      }
-      if(durIndex <= 0){
-        durIndex = 0
-      }
-    }
-    
+    let durIndex  = Math.floor(percent * rIndexList.length)
     let page = Math.floor(durIndex / (pvData.img_x_len * pvData.img_y_len));
     let imgUrl = pvData.image[page];
     // 坐标
-    let _index = Math.floor(percent * rIndexList.length);
     let imgIndex = durIndex - page * onePageImgs;
     let x = ((imgIndex - 1) % pvData.img_x_len) * width;
     // let y = Math.floor(imgIndex / (pvData.img_x_len)) * (width * pvData.img_y_size / pvData.img_x_size);
