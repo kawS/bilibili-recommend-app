@@ -208,7 +208,7 @@
         let arr = id.split('/');
         id = arr[arr.length - 1]
       }
-      GM_setClipboard(`BBDown -app -token ${options.accessKey} -mt --add-dfn-subfix -ia -p 1 "${id}"`);
+      GM_setClipboard(`BBDown -app -token ${options.accessKey} -mt --add-dfn-subfix -ia -p all "${id}"`);
       toast('复制命令成功')
       return
     })
@@ -407,7 +407,7 @@
                     </picture>
                   </div>
                 </a>
-              <a href="javascript:;" class="BBDown" data-id="${data.goto=='av' ? data.param : data.uri}">BBDown下载</a>
+              <a href="javascript:;" class="BBDown" data-id="${data.goto=='av' ? 'av'+data.param : data.uri}">BBDown下载</a>
               </div>
               <div class="bili-video-card__info--right">
                 <a href="${data.goto=='av'?'/video/av'+data.param:data.uri}" target="_blank">
