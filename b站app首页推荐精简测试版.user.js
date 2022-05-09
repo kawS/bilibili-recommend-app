@@ -208,7 +208,7 @@
         let arr = id.split('/');
         id = arr[arr.length - 1]
       }
-      GM_setClipboard(`BBDown -app -token ${options.accessKey} -mt --add-dfn-subfix -ia -p all "${id}"`);
+      GM_setClipboard(`BBDown -app -token ${options.accessKey} -mt -ia -p all "${id}"`);
       toast('复制命令成功')
       return
     })
@@ -307,7 +307,7 @@
     showLoading(options.itemHeight);
     let url1 = `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`;
     let url2 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=' + ((Date.now() / 1000).toFixed(0) + Math.round(Math.random() * 100)) + (options.accessKey ? '&access_key=' + options.accessKey : '');
-    let url3 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=' + ((Date.now() / 1000).toFixed(0) + Math.round(Math.random() * 100)) + (options.accessKey ? '&access_key=' + options.accessKey : '');
+    let url3 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=' + ((Date.now() / 1000).toFixed(0) + (Math.round(Math.random() * 100) + 100)) + (options.accessKey ? '&access_key=' + options.accessKey : '');
     let result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url3)]);
     let data = await result;
     data[0] = new2old(data[0]);
