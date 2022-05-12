@@ -1,11 +1,13 @@
 // ==UserScript==
 // @name         b站首页推荐精简测试版
 // @namespace    kasw
-// @version      0.5
+// @version      0.6
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=bilibili.com
+
+// @source       https://github.com/kawS/bilibili-recommend-app
 
 // @include      https://www.mcbbs.net/template/mcbbs/image/special_photo_bg.png?*
 
@@ -511,7 +513,7 @@
     let percent = mouseX / width;
     if (percent < 0) percent = 0;
     if (percent > 1) percent = 1;
-    let durIndex  = Math.floor(percent * rIndexList.length)
+    let durIndex = Math.floor(percent * rIndexList.length)
     let page = Math.floor(durIndex / (pvData.img_x_len * pvData.img_y_len));
     let imgUrl = pvData.image[page];
     // 坐标
