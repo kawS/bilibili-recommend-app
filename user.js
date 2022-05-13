@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐精简测试版
 // @namespace    kasw
-// @version      0.6
+// @version      0.65
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -24,7 +24,6 @@
 // @run-at       document-idle
 
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js
-// @require      https://cdn.jsdelivr.net/npm/js-md5@0.7.3/src/md5.min.js
 
 // @license      MIT
 // ==/UserScript==
