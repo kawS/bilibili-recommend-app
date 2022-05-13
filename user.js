@@ -112,6 +112,9 @@
         </div>
       </section>`;
     $position.after(html);
+    if(options.accessKey){
+      $('#JaccessKey').hide()
+    }
     $list = $('#recommend-list');
   }
   // 提示
