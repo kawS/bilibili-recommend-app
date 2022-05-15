@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐精简测试版
 // @namespace    kasw
-// @version      0.65
+// @version      0.7
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -30,11 +30,11 @@
 
 (function() {
   'use strict';
-  // 用于授权
   if (location.href.startsWith('https://www.mcbbs.net/template/mcbbs/image/special_photo_bg.png?')) {
     window.stop();
-    return window.top.postMessage(location.href, 'https://www.bilibili.com');
-	}
+    return window.top.postMessage(location.href, 'https://www.bilibili.com')
+  }
+  let $list = null;
   let isWait = false;
   let options = {
     maxClientWidth: $(window).width(),
@@ -43,7 +43,6 @@
     refresh: 1,
     itemHeight: 0
   }
-  let $list = null;
   function init(){
     if(location.pathname != '/'){
       return
@@ -55,40 +54,24 @@
     if(options.accessKey){
       $('#JaccessKey').hide()
     }
-    getRecommendList();
-    console.log(options)
+    getRecommendList()
   }
-  // 样式
   function initStyle(){
-    let style = `
+    const style = `
       <style>
-        .van-danmu{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:6px;z-index:5;pointer-events:none;transition:opacity .3s;overflow:hidden;}
-        .van-danmu-item{position:absolute;top:40px;left:100%;color:#fff;text-shadow:1px 1px 2px #000;will-change:transform;white-space:pre}
-        .van-danmu-item.row2{top:70px}
-        .van-danmu-item.row3{top:100px}
-        .van-framepreview{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:6px;z-index:4;overflow:hidden}
-        .van-fpbar-box{position:absolute;left:1%;bottom:1px;width:98%;height:8px;border-color:#ccc;border-style:solid;border-width:3px 8px;border-radius:2px;background:#444;box-sizing:border-box;}
-        .van-fpbar-box span{display:block;background:#fff;height:2px;transition:width .12s}
-        .dislike-botton{position:absolute;top:8px;right:8px;opacity:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:right;font-weight:700;transition:all .3s;text-shadow:1px 1px 2px #000;color:#fff;z-index:22;cursor:default}
-        .dislike-list{display:none;}
-        .cardwp:hover .dislike-botton{opacity:1}
-        .dislike-botton:hover .dislike-list{display:unset;}
-        .dislike-list>div:hover{text-decoration:line-through;}
-        .dislike-cover{position:absolute!important;top:0px;width:100%;height:100%;background:hsla(0,0%,100%,.9);text-align:center;font-size:15px;z-index:22;cursor:default}
-        @keyframes turn{0%{-webkit-transform:rotate(0deg);}100%{-webkit-transform:rotate(360deg);}}
+        @keyframes turn{0%{-webkit-transform:rotate(0deg)}100%{-webkit-transform:rotate(360deg)}}
         .taglike{position: absolute;bottom: 25px;left: 8px;padding: 0 2px;height: 18px;line-height: 18px;font-size: 12px;}
-        .load-state{position:absolute;top:0;left:0;background:rgba(255,255,255,.8);width:100%;height:100%;min-height:240px;border-radius:4px;font-size:3rem;text-align:center;z-index:50}
-        .load-state .loading{line-height:240px}
+        .load-state{position: absolute;top: 0;left: 0;background: rgba(255,255,255,.8);width: 100%;height: 100%;min-height: 240px;border-radius: 4px;font-size: 3rem;text-align: center;z-index: 50}
+        .load-state .loading{line-height: 240px}
         .load-state .loading svg{margin:0 10px 0 0;width:2rem;height:2rem;transform: rotate(0deg);animation:turn 1s linear infinite;transition: transform .5s ease}
         .toast{position: fixed;top: 30%;left: 50%;z-index: 999999;margin-left: -180px;padding: 12px 24px;font-size: 14px;background: rgba(0,0,0,.8);width: 360px;border-radius: 6px;color: #fff;text-align: center}
         .BBDown{margin-top: 4px;width: 60%;line-height: 1;font-size: 12px;display: inline-block;}
       </style>`;
     $('head').append(style)
   }
-  // 结构
   function intiHtml(){
-    let $position = $('.bili-grid').eq(1);
-    let html = `
+    const $position = $('.bili-grid').eq(1);
+    const html = `
       <section class="bili-grid" data-area='推荐' id="recommend">
         <div class="eva-extension-area">
           <div class="area-header">
@@ -96,7 +79,7 @@
               <a href="javascript:;" class="title"><span>油猴插件推荐</span></a>
             </div>
             <div class="right">
-              <button class="primary-btn roll-btn" id="JaccessKey">
+              <button class="primary-btn roll-btn" id="JaccessKey"${options.accessKey ? ' style="display: none"' : ''}>
                 <span>${options.accessKey ? '删除授权' : '获取授权'}</span>
               </button>
               <button class="primary-btn roll-btn" id="Jrefresh">
@@ -105,26 +88,19 @@
               </button>
             </div>
           </div>
-          <div class="eva-extension-body" id="recommend-list">
-
-          </div>
+          <div class="eva-extension-body" id="recommend-list"></div>
         </div>
       </section>`;
     $position.after(html);
-    if(options.accessKey){
-      $('#JaccessKey').hide()
-    }
     $list = $('#recommend-list');
   }
-  // 提示
   function toast(msg, duration = 2000){
-    let $toast = $(`<div class="toast">${msg}</div>`);
+    const $toast = $(`<div class="toast">${msg}</div>`);
     $toast.appendTo($('body'));
     setTimeout(() => {
       $toast.remove()
     }, duration)
   }
-  // loading
   function showLoading(minHeight){
     $list.prepend(`
       <div class="load-state spread-module" style="min-height:${minHeight}px">
@@ -133,10 +109,9 @@
         </p>
       </div>`)
   }
-  // 事件
   function initEvent(){
     $('#JaccessKey').on('click', function(){
-      let $this = $(this);
+      const $this = $(this);
       let type = $this.text().trim();
       if(isWait){
         return
@@ -153,21 +128,22 @@
       return false
     })
     $('#Jrefresh').on('click', function(){
-      let $this = $(this);
+      if($('.load-state').length > 0) return
+      const $this = $(this);
+      const reg = /(rotate\([\-\+]?((\d+)(deg))\))/i;
       let $svg = $this.find('svg');
-      var reg = /(rotate\([\-\+]?((\d+)(deg))\))/i;
       var css = $svg.attr('style');
       var wts = css.match(reg);
       $svg.css('transform', `rotate(${parseFloat(wts[3]) + 360}deg)`);
-      console.log(options);
       options.maxClientWidth = $(window).width();
       setSize(options.maxClientWidth);
       getRecommendList();
+      return false
     })
     $list.on('mouseenter', '.bili-video-card__image', function(e){
       e.stopPropagation();
+      const $this = $(this);
       let rect = e.currentTarget.getBoundingClientRect();
-      let $this = $(this);
       if($this.data('go') == 'av'){
         $this.find('.bili-watch-later').stop().fadeIn();
         $this.find('.v-inline-player').addClass('mouse-in visible');
@@ -175,46 +151,38 @@
       }
     }).on('mouseleave', '.bili-video-card__image', function(e){
       e.stopPropagation();
-      let $this = $(this);
+      const $this = $(this);
       if($this.data('go') == 'av'){
         $this.find('.bili-watch-later').stop().fadeOut();
         $this.find('.v-inline-player').removeClass('mouse-in visible');
       }
     }).on('mousemove', '.bili-video-card__image', function(e){
       e.stopPropagation();
+      const $this = $(this);
       let rect = e.currentTarget.getBoundingClientRect();
-      let $this = $(this);
       if($this.data('go') == 'av'){
         if($this[0].pvData){
-          // if(e.target.className == 'bili-watch-later'){
-          //   return
-          // }
           setPosition($this, e.clientX - rect.left, $this[0].pvData)
         }
       }
     }).on('mouseenter', '.bili-watch-later', function(e){
       e.stopPropagation();
-      let $this = $(this);
+      const $this = $(this);
       $this.find('span').stop().fadeIn()
     }).on('mouseleave', '.bili-watch-later', function(e){
       e.stopPropagation();
-      let $this = $(this);
+      const $this = $(this);
       $this.find('span').stop().fadeOut()
     }).on('click', '.bili-watch-later', function(){
-      let $this = $(this);
+      const $this = $(this);
       watchlater($this);
       return false
     }).on('click', '.BBDown', function(){
-      let $this = $(this);
+      const $this = $(this);
       let id = $this.data('id');
-      let isGo = /\//.test(id);
-      if(isGo){
-        let arr = id.split('/');
-        id = arr[arr.length - 1]
-      }
       GM_setClipboard(`BBDown -app -token ${options.accessKey} -mt -ia -p all "${id}"`);
       toast('复制命令成功')
-      return
+      return false
     })
   }
   function setSize(width){
@@ -226,23 +194,31 @@
       options.sizes = 6 * 4
     }
   }
-  // 删除授权
   function delAccessKey(){
     isWait = false;
     options.accessKey = null;
     GM_deleteValue('biliAppHomeKey');
     toast('获取删除成功');
   }
-  // 获取授权
   async function getAccessKey(el){
-    let uri = null;
-    let res = await fetch('https://passport.bilibili.com/login/app/third?appkey=27eb53fc9058f8c3&api=https%3A%2F%2Fwww.mcbbs.net%2Ftemplate%2Fmcbbs%2Fimage%2Fspecial_photo_bg.png&sign=04224646d1fea004e79606d3b038c84a', {
-      method: 'GET',
-      credentials: 'include'
-    })
-    let data = await res.json();
+    let url = null;
+    let res = null;
+    let data = null;
+    try {
+      res = await fetch('https://passport.bilibili.com/login/app/third?appkey=27eb53fc9058f8c3&api=https%3A%2F%2Fwww.mcbbs.net%2Ftemplate%2Fmcbbs%2Fimage%2Fspecial_photo_bg.png&sign=04224646d1fea004e79606d3b038c84a', {
+        method: 'GET',
+        credentials: 'include'
+      })
+    } catch (error) {
+      toast(error)
+    }
+    try {
+      data = await res.json();
+    } catch (error) {
+      toast(error)
+    }
     if (data.code || !data.data) {
-      el.find('span').text('获取授权')
+      el.find('span').text('获取授权');
       toast(data.msg || data.message || data.code)
     } else if (!data.data.has_login) {
       el.find('span').text('获取授权');
@@ -251,9 +227,13 @@
       el.find('span').text('获取授权');
       toast('无法获得授权网址')
     } else {
-      uri = data.data.confirm_uri
+      url = data.data.confirm_uri
     }
-    let $iframe = $(`<iframe src='${uri}' style="display: none;" />`);
+    if(url == null){
+      isWait = false;
+      return
+    }
+    let $iframe = $(`<iframe src='${url}' style="display: none;" />`);
     $iframe.appendTo($('body'));
     let timeout = setTimeout(() => {
       $iframe.remove();
@@ -261,22 +241,23 @@
       toast('获取授权超时')
     }, 5000);
     window.onmessage = ev => {
-      if (ev.origin != 'https://www.mcbbs.net' || !ev.data) return;
+      if (ev.origin != 'https://www.mcbbs.net' || !ev.data) {
+        isWait = false;
+        return
+      }
       const key = ev.data.match(/access_key=([0-9a-z]{32})/);
       if (key) {
         GM_setValue('biliAppHomeKey', options.accessKey = key[1]);
         toast('获取授权成功');
-        el.find('span').text('删除授权');;
+        el.hide().find('span').text('删除授权');;
         clearTimeout(timeout);
         $iframe.remove();
-        console.log(options)
       } else {
         toast('没有获得匹配的密钥')
       }
     }
     isWait = false;
   }
-  // 获取视频
   function getRecommend(url, type){
     const errmsg = '获取推荐视频失败';
     return new Promise((resolve, reject) => {
@@ -304,7 +285,6 @@
       })
     })
   }
-
   async function getRecommendList(){
     options.itemHeight = $('.bili-grid').eq(0).find('.bili-video-card').height() * 4 + 20 * 3;
     // $('#recommend-list').css('min-height', options.itemHeight + 'px');
@@ -313,15 +293,21 @@
     let url2 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=' + ((Date.now() / 1000).toFixed(0) + Math.round(Math.random() * 100)) + (options.accessKey ? '&access_key=' + options.accessKey : '');
     let url3 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=' + ((Date.now() / 1000).toFixed(0) + (Math.round(Math.random() * 100) + 100)) + (options.accessKey ? '&access_key=' + options.accessKey : '');
     let result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url3)]);
-    let data = await result;
+    let data = null;
+    let list = null;
+    try {
+      data = await result;
+    } catch (error) {
+      toast(error)
+    }
     data[0] = new2old(data[0]);
-    let list = data.reduce((pre, item) => {
+    list = data.reduce((pre, item) => {
       return pre.concat(item)
     })
     options.refresh += 1;
+    // console.log(list);
     updateRecommend(list)
   }
-  // 新版转换老版格式
   function new2old(data){
     return data.map((item) => {
       return {
@@ -349,7 +335,6 @@
       }
     })
   }
-
   function updateRecommend(list){
     let html = '';
     for(let i=0;i<options.sizes;i++){
@@ -368,21 +353,21 @@
             </div>
           </div>
           <div class="bili-video-card__wrap __scale-wrap">
-            <a href="${data.goto == 'av' ? '/video/av' + data.param : data.uri}" target="_blank" class="cardwp">
-              <div class="bili-video-card__image __scale-player-wrap" data-go="${data.goto}" data-aid="${data.param}" data-duration="${data.duration}">
+            <a href="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" target="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" class="cardwp">
+              <div class="bili-video-card__image __scale-player-wrap" data-go="${data.goto}" data-aid="${data.param}" data-duration="${data.goto == 'av' ? data.duration : ''}">
                 <div class="bili-video-card__image--wrap">
                   <div class="bili-watch-later" data-aid="${data.param}" style="display: none;">
                     <svg class="bili-watch-later__icon"><use xlink:href="#widget-watch-later"></use></svg>
                     <span class="bili-watch-later__tip" style="display: none;">稍后再看</span>
                   </div>
                   <picture class="v-img bili-video-card__cover">
-                    <source srcset="${data.cover.replace('http:','')}@672w_378h_1c_100q.webp" type="image/webp"/>
-                    <img src="${data.cover.replace('http:','')}@672w_378h_1c_100q" alt="${data.title}" loading="eager" onload=""/>
+                    <source srcset="${data.cover.replace('http:', 'https:')}@672w_378h_1c_100q.webp" type="image/webp"/>
+                    <img src="${data.cover.replace('http:', 'https:')}@672w_378h_1c_100q" alt="${data.title}" loading="eager" onload=""/>
                   </picture>
                   <div class="v-inline-player"></div>
                 </div>
                 <div class="bili-video-card__mask">
-                  <div class="taglike" style="background:${data.badge ? '#ff8f00' : data.tname ? '#fff' : '#ff005d'};color:${data.badge ? '#fff' : data.tname ? '#333' : '#fff'}">${data.badge||data.tname||'官方新版推荐'}</div>
+                  <div class="taglike" style="background:${data.badge ? '#ff8f00' : data.tname ? '#fff' : '#ff005d'};color:${data.badge ? '#fff' : data.tname ? '#333' : '#fff'}">${data.badge || data.tname || '官方新版推荐'}</div>
                   <div class="bili-video-card__stats">
                     <div class="bili-video-card__stats--left">
                       <span class="bili-video-card__stats--item">
@@ -391,39 +376,39 @@
                         </svg>
                         <span class="bili-video-card__stats--text">${formatNumber(data.play)}</span>
                       </span>
-                      <span class="bili-video-card__stats--item">
+                      <span class="bili-video-card__stats--item"${data.goto == 'av' ? '' : ' style="display: none"'}>
                         <svg class="bili-video-card__stats--icon"><use xlink:href="#widget-agree"></use></svg>
                         <span class="bili-video-card__stats--text">${formatNumber(data.like)}</span>
                       </span>
                     </div>
-                    <span class="bili-video-card__stats__duration">${data.duration && formatNumber(data.duration, 'time') || ''}</span>
+                    <span class="bili-video-card__stats__duration">${data.goto == 'av' ? formatNumber(data.duration, 'time') : formatNumber(data.favorite) + '收藏'}</span>
                   </div>
                 </div>
               </div>
             </a>
             <div class="bili-video-card__info __scale-disable">
               <div>
-                <a href="https://space.bilibili.com/${data.mid}" target="_blank">
+                <a href="https://space.bilibili.com/${data.mid}" target="https://space.bilibili.com/${data.mid}">
                   <div class="v-avatar bili-video-card__avatar">
                     <picture class="v-img v-avatar__face">
-                      <source srcset="${data.face.replace('http:','')}@72w_72h.webp" type="image/webp"/>
-                      <img src="${data.face.replace('http:','')}@72w_72h" alt="${data.name||data.badge}" loading="lazy" onload=""/>
+                      <source srcset="${data.face.replace('http:', 'https:')}@72w_72h.webp" type="image/webp"/>
+                      <img src="${data.face.replace('http:', 'https:')}@72w_72h" alt="${data.name || data.badge}" loading="lazy" onload=""/>
                     </picture>
                   </div>
                 </a>
-              <a href="javascript:;" class="BBDown" data-id="${data.goto=='av' ? 'av'+data.param : data.uri}">BBDown下载</a>
+              <a href="javascript:;" class="BBDown" data-id="${data.goto == 'av' ? 'av' + data.param : data.uri}">BBDown下载</a>
               </div>
               <div class="bili-video-card__info--right">
-                <a href="${data.goto=='av'?'/video/av'+data.param:data.uri}" target="_blank">
+                <a href="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" target="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}">
                   <h3 class="bili-video-card__info--tit" title="${data.title}">${data.title}</h3>
                 </a>
-                <p class="bili-video-card__info--bottom" style="${(data.rcmd_reason && data.rcmd_reason.content == '已关注') ? 'color:#f00' : data.badge ? 'color:#ff8f00' : ''}">
-                  <a class="bili-video-card__info--owner" href="//space.bilibili.com/${data.mid}" target="_blank">
+                <p class="bili-video-card__info--bottom" style="${(data.rcmd_reason && data.rcmd_reason.content == '已关注') ? 'color: #f00' : data.badge ? 'color: #ff8f00' : ''}">
+                  <a class="bili-video-card__info--owner" href="https://space.bilibili.com/${data.mid}" target="https://space.bilibili.com/${data.mid}">
                     <svg class="bili-video-card__info--owner__up">
                       <use xlink:href="#widget-up"></use>
                     </svg>
                     <span class="bili-video-card__info--author">${data.name || data.badge + ' - ' + data.desc}</span>
-                    <span class="bili-video-card__info--date">${returnDateTxt(data.ctime)}</span>
+                    <span class="bili-video-card__info--date"${data.goto == 'av' ? '' : ' style="display: none"'}>${returnDateTxt(data.ctime)}</span>
                   </a>
                 </p>
               </div>
@@ -467,15 +452,25 @@
   async function watchlater(el){
     let type = el.hasClass('del') ? 'del' : 'add';
     let aid = el.data('aid');
-    let res = await fetch(`https://api.bilibili.com/x/v2/history/toview/${type}`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
-      },
-      body: `aid=${aid}&csrf=${token()}`
-    })
-    let data = await res.json();
+    let res = null;
+    let data = null;
+    try {
+      res = await fetch(`https://api.bilibili.com/x/v2/history/toview/${type}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        },
+        body: `aid=${aid}&csrf=${token()}`
+      })
+    } catch (error) {
+      toast(error)
+    }
+    try {
+      data = await res.json();
+    } catch (error) {
+      toast(error)
+    }
     if(data.code == 0){
       if(type == 'add'){
         el.addClass('del').find('span').text('移除');
@@ -494,41 +489,46 @@
     let aid = el.data('aid');
     let pvData = el[0].pvData;
     if(!pvData){
-      let res = await fetch(`https://api.bilibili.com/pvideo?aid=${aid}`);
-      let data = await res.json();
+      let res = null;
+      let data = null;
+      try {
+        res = await fetch(`https://api.bilibili.com/pvideo?aid=${aid}`);
+      } catch (error) {
+        toast(error)
+      }
+      try {
+        data = await res.json();
+      } catch (error) {
+        toast(error)
+      }
       pvData = el[0].pvData = data.data
     }
     setPosition(el, e, pvData)
   }
   function setPosition(el, mouseX, pvData){
-    let $tarDom = el.find('.v-inline-player');
-    let duration = el.data('duration');
-    let width = $tarDom.width();
-    let height = $tarDom.height();
-    let sizeX = width * pvData.img_x_len;
-    let sizeY = height * pvData.img_y_len;
-    let onePageImgs = pvData.img_x_len * pvData.img_y_len;
-    let rIndexList = pvData.index.slice(1);
-    let pageSize = Math.ceil(rIndexList.length / onePageImgs);
-    // console.log(pvData);
-    // 寻点
+    const $tarDom = el.find('.v-inline-player');
+    const $duration = el.data('duration');
+    const $pvbox = $tarDom.find('pv-box');
+    const width = $tarDom.width();
+    const height = $tarDom.height();
+    const sizeX = width * pvData.img_x_len;
+    const sizeY = height * pvData.img_y_len;
+    const onePageImgs = pvData.img_x_len * pvData.img_y_len;
+    const rIndexList = pvData.index.slice(1);
+    const pageSize = Math.ceil(rIndexList.length / onePageImgs);
     let percent = mouseX / width;
     if (percent < 0) percent = 0;
     if (percent > 1) percent = 1;
-    let durIndex = Math.floor(percent * rIndexList.length)
-    let page = Math.floor(durIndex / (pvData.img_x_len * pvData.img_y_len));
-    let imgUrl = pvData.image[page];
-    // 坐标
-    let imgIndex = durIndex - page * onePageImgs;
-    let x = ((imgIndex - 1) % pvData.img_x_len) * width;
-    // let y = Math.floor(imgIndex / (pvData.img_x_len)) * (width * pvData.img_y_size / pvData.img_x_size);
-    let y = Math.floor(imgIndex / (pvData.img_x_len)) * height;
-    let imgY = (Math.floor(imgIndex / pvData.img_x_len)) + 1;
-    let imgX = imgIndex - (imgY - 1) * pvData.img_x_len;
-    // console.log(_index, durIndex, x, y, (imgX-1) * width, (imgY-1) * height);
-    // 进度条
-    let bar = percent * 100;
-    let $pvbox = $tarDom.find('pv-box');
+    const durIndex = Math.floor(percent * rIndexList.length)
+    const page = Math.floor(durIndex / (pvData.img_x_len * pvData.img_y_len));
+    const imgUrl = pvData.image[page];
+    const imgIndex = durIndex - page * onePageImgs;
+    const x = ((imgIndex - 1) % pvData.img_x_len) * width;
+    // const y = Math.floor(imgIndex / (pvData.img_x_len)) * (width * pvData.img_y_size / pvData.img_x_size);
+    const y = Math.floor(imgIndex / (pvData.img_x_len)) * height;
+    const imgY = (Math.floor(imgIndex / pvData.img_x_len)) + 1;
+    const imgX = imgIndex - (imgY - 1) * pvData.img_x_len;
+    const bar = percent * 100;
     if($pvbox.length > 0){
       $pvbox.css({
         'background': `url(https:${imgUrl}) -${x}px -${y}px no-repeat`
