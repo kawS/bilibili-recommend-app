@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         b站首页推荐精简测试版
+// @name         b站首页推荐
 // @namespace    kasw
 // @version      0.75
 // @description  网页端首页推荐视频
