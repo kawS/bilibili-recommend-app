@@ -367,7 +367,7 @@
                   <div class="v-inline-player"></div>
                 </div>
                 <div class="bili-video-card__mask">
-                  <div class="taglike" style="background:${data.badge ? '#ff8f00' : data.tname ? '#fff' : '#ff005d'};color:${data.badge ? '#fff' : data.tname ? '#333' : '#fff'}">${data.badge || data.tname || '官方新版推荐'}</div>
+                  <div class="taglike" style="background:${data.badge ? '#ff8f00' : data.tname ? '#fff' : '#ff005d'};color:${data.badge ? '#fff' : data.tname ? '#333' : '#fff'};display: none">${data.badge || data.tname || '官方新版推荐'}</div>
                   <div class="bili-video-card__stats">
                     <div class="bili-video-card__stats--left">
                       <span class="bili-video-card__stats--item">
