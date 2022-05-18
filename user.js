@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      0.95
+// @version      1.0
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -42,7 +42,7 @@
     accessKey: GM_getValue('biliAppHomeKey'),
     refresh: 1,
     itemHeight: 0,
-    isShowDanmaku : true
+    isShowDanmaku : false
   }
   function init(){
     if(location.pathname != '/'){
@@ -381,7 +381,8 @@
                   <div class="v-inline-danmaku"></div>
                 </div>
                 <div class="bili-video-card__mask">
-                  <div class="taglike" style="background:${data.badge ? '#ff8f00' : data.tname ? '#fff' : '#ff005d'};color:${data.badge ? '#fff' : data.tname ? '#333' : '#fff'};display: none">${data.badge || data.tname || '官方新版推荐'}</div>
+                  <div class="taglike" style="background:${data.badge ? ' #ff8f00' : data.tname ? ' #fff' : ' #ff005d'};color:${data.badge ? ' #fff' : data.tname ? ' #333' : ' #fff'};display: none">${data.badge || data.tname || '官方新版推荐'}</div>
+                  ${data.badge ? `<div class="taglike" style="background: #ff8f00;color: #fff;">${data.badge}</div>` : data.rcmd_reason && data.rcmd_reason.content == '已关注' ? `<div class="taglike" style="background: #ff8f00;color: #fff;">已关注</div>` : ''}
                   <div class="bili-video-card__stats">
                     <div class="bili-video-card__stats--left">
                       <span class="bili-video-card__stats--item">
