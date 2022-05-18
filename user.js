@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      0.9
+// @version      0.95
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -41,7 +41,8 @@
     sizes: null,
     accessKey: GM_getValue('biliAppHomeKey'),
     refresh: 1,
-    itemHeight: 0
+    itemHeight: 0,
+    isShowDanmaku : true
   }
   function init(){
     if(location.pathname != '/'){
@@ -82,6 +83,7 @@
               <a href="javascript:;" class="title"><span>油猴插件推荐</span></a>
             </div>
             <div class="right">
+              <label><input type="checkbox" ${options.isShowDanmaku ? 'checked': ''} id="JShowDanmaku"/>是否预览弹幕</label>
               <button class="primary-btn roll-btn" id="JaccessKey"${options.accessKey ? ' style="display: none"' : ''}>
                 <span>${options.accessKey ? '删除授权' : '获取授权'}</span>
               </button>
@@ -96,21 +98,6 @@
       </section>`;
     $position.after(html);
     $list = $('#recommend-list');
-  }
-  function toast(msg, duration = 2000){
-    const $toast = $(`<div class="toast">${msg}</div>`);
-    $toast.appendTo($('body'));
-    setTimeout(() => {
-      $toast.remove()
-    }, duration)
-  }
-  function showLoading(minHeight){
-    $list.prepend(`
-      <div class="load-state spread-module" style="min-height:${minHeight}px">
-        <p class="loading" style="line-height:${minHeight / 2}px">
-          <svg><use xlink:href="#widget-roll"></use></svg>正在加载...
-        </p>
-      </div>`)
   }
   function initEvent(){
     $('#JaccessKey').on('click', function(){
@@ -151,7 +138,9 @@
         $this.find('.bili-watch-later').stop().fadeIn();
         $this.find('.v-inline-player, .v-inline-danmaku').addClass('mouse-in visible');
         getPreviewImage($this, e.clientX - rect.left);
-        getPreviewDanmaku($this)
+        if(options.isShowDanmaku){
+          getPreviewDanmaku($this)
+        }
       }
     }).on('mouseleave', '.bili-video-card__image', function(e){
       e.stopPropagation();
@@ -188,6 +177,26 @@
       toast('复制命令成功')
       return false
     })
+    $('#JShowDanmaku').on('change', function(){
+      const $this = $(this);
+      let val = $this.prop('checked');
+      options.isShowDanmaku = val
+    })
+  }
+  function toast(msg, duration = 2000){
+    const $toast = $(`<div class="toast">${msg}</div>`);
+    $toast.appendTo($('body'));
+    setTimeout(() => {
+      $toast.remove()
+    }, duration)
+  }
+  function showLoading(minHeight){
+    $list.prepend(`
+      <div class="load-state spread-module" style="min-height:${minHeight}px">
+        <p class="loading" style="line-height:${minHeight / 2}px">
+          <svg><use xlink:href="#widget-roll"></use></svg>正在加载...
+        </p>
+      </div>`)
   }
   function setSize(width){
     if(width < 1684){
@@ -529,7 +538,6 @@
       danmakuData = el[0].danmakuData = data.data
     }
     setDanmakuRoll(el, danmakuData);
-    console.log(danmakuData)
   }
   function setPosition(el, mouseX, pvData){
     const $tarDom = el.find('.v-inline-player');
