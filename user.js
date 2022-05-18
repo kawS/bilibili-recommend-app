@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      0.8
+// @version      0.9
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -66,6 +66,9 @@
         .load-state .loading svg{margin:0 10px 0 0;width:2rem;height:2rem;transform: rotate(0deg);animation:turn 1s linear infinite;transition: transform .5s ease}
         .toast{position: fixed;top: 30%;left: 50%;z-index: 999999;margin-left: -180px;padding: 12px 24px;font-size: 14px;background: rgba(0,0,0,.8);width: 360px;border-radius: 6px;color: #fff;text-align: center}
         .BBDown{margin-top: 4px;width: 60%;line-height: 1;font-size: 12px;display: inline-block;}
+        .v-inline-danmaku{position: absolute;top: 0;left: 0;width: 100%;height: 100%;z-index: 2;pointer-events: none;user-select: none;border-radius: inherit;opacity: 0;transition: opacity .2s linear;overflow: hidden}
+        .v-inline-danmaku.visible{opacity: 1}
+        .v-inline-danmaku p{position: absolute;color: #fff;transition: transform 5s linear 0s;text-shadow: #000 1px 0px 1px, #000 0px 1px 1px, #000 0px -1px 1px, #000 -1px 0px 1px;white-space: nowrap;opacity: 0}
       </style>`;
     $('head').append(style)
   }
@@ -146,15 +149,16 @@
       let rect = e.currentTarget.getBoundingClientRect();
       if($this.data('go') == 'av'){
         $this.find('.bili-watch-later').stop().fadeIn();
-        $this.find('.v-inline-player').addClass('mouse-in visible');
-        getPreviewImage($this, e.clientX - rect.left)
+        $this.find('.v-inline-player, .v-inline-danmaku').addClass('mouse-in visible');
+        getPreviewImage($this, e.clientX - rect.left);
+        getPreviewDanmaku($this)
       }
     }).on('mouseleave', '.bili-video-card__image', function(e){
       e.stopPropagation();
       const $this = $(this);
       if($this.data('go') == 'av'){
         $this.find('.bili-watch-later').stop().fadeOut();
-        $this.find('.v-inline-player').removeClass('mouse-in visible');
+        $this.find('.v-inline-player, .v-inline-danmaku').removeClass('mouse-in visible');
       }
     }).on('mousemove', '.bili-video-card__image', function(e){
       e.stopPropagation();
@@ -365,6 +369,7 @@
                     <img src="${data.cover.replace('http:', 'https:')}@672w_378h_1c_100q" alt="${data.title}" loading="eager" onload=""/>
                   </picture>
                   <div class="v-inline-player"></div>
+                  <div class="v-inline-danmaku"></div>
                 </div>
                 <div class="bili-video-card__mask">
                   <div class="taglike" style="background:${data.badge ? '#ff8f00' : data.tname ? '#fff' : '#ff005d'};color:${data.badge ? '#fff' : data.tname ? '#333' : '#fff'};display: none">${data.badge || data.tname || '官方新版推荐'}</div>
@@ -501,9 +506,30 @@
       } catch (error) {
         toast(error)
       }
-      pvData = el[0].pvData = data.data
+      pvData = el[0].pvData = data.data;
     }
     setPosition(el, e, pvData)
+  }
+  async function getPreviewDanmaku(el){
+    let aid = el.data('aid');
+    let danmakuData = el[0].danmakuData;
+    if(!danmakuData){
+      let res = null;
+      let data = null;
+      try {
+        res = await fetch(`https://api.bilibili.com/x/v2/dm/ajax?aid=${aid}`);
+      } catch (error) {
+        toast(error)
+      }
+      try {
+        data = await res.json();
+      } catch (error) {
+        toast(error)
+      }
+      danmakuData = el[0].danmakuData = data.data
+    }
+    setDanmakuRoll(el, danmakuData);
+    console.log(danmakuData)
   }
   function setPosition(el, mouseX, pvData){
     const $tarDom = el.find('.v-inline-player');
@@ -542,6 +568,26 @@
       <div class="pv-box" style="background: url(https:${imgUrl}) -${x}px -${y}px no-repeat;background-size: ${sizeX}px ${sizeY}px;height: 100%;pointer-events:none"></div>
       <div class="pv-bar" style="position: absolute;left: 0;bottom: 0;background: #f00;width: ${bar}%;height: 2px;z-index: 2"></div>
     `)
+  }
+  function setDanmakuRoll(el, danmakuData){
+    if(danmakuData.length <= 0) return;
+    const $tarDom = el.find('.v-inline-danmaku');
+    let outWidth = $tarDom.width();
+    let length = danmakuData.length > 5 ? 5 : danmakuData.length;
+    let items = $tarDom.find('p');
+    if(items.length > 0){
+      $tarDom.empty()
+    }
+    for(let i = 0;i < length;i++){
+      let $html = $(`<p style="top: ${18 * i + 10}px;left: ${outWidth}px">${danmakuData[i]}</p>`);
+      $tarDom.append($html)
+      setTimeout(() => {
+        $html.css({
+          'transform': `translateX(-${$html.width() + outWidth}px)`,
+          'opacity': 1
+        })
+      }, 800)
+    }
   }
 
   init()
