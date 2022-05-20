@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      1.0
+// @version      1.5
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -42,7 +42,7 @@
     accessKey: GM_getValue('biliAppHomeKey'),
     refresh: 1,
     itemHeight: 0,
-    isShowDanmaku : false
+    isShowDanmaku : GM_getValue('biliAppDanmaku') || false
   }
   function init(){
     if(location.pathname != '/'){
@@ -69,7 +69,14 @@
         .BBDown{margin-top: 4px;width: 60%;line-height: 1;font-size: 12px;display: inline-block;}
         .v-inline-danmaku{position: absolute;top: 0;left: 0;width: 100%;height: 100%;z-index: 2;pointer-events: none;user-select: none;border-radius: inherit;opacity: 0;transition: opacity .2s linear;overflow: hidden}
         .v-inline-danmaku.visible{opacity: 1}
-        .v-inline-danmaku p{position: absolute;color: #fff;transition: transform 5s linear 0s;text-shadow: #000 1px 0px 1px, #000 0px 1px 1px, #000 0px -1px 1px, #000 -1px 0px 1px;white-space: nowrap;opacity: 0}
+        .v-inline-danmaku p{position: absolute;color: #fff;text-shadow: #000 1px 0px 1px, #000 0px 1px 1px, #000 0px -1px 1px, #000 -1px 0px 1px;white-space: nowrap;opacity: 0}
+        .be-switch-container{position:relative;display:flex;height:20px;cursor:pointer;white-space:nowrap;align-items: center;}
+        .be-switch-container.is-checked .be-switch{background-color:#00a1d6}
+        .be-switch-container.is-checked .be-switch-cursor{left:17px}
+        .be-switch{position:relative;width:30px;height:16px;border-radius:8px;background-color:#ccd0d7;vertical-align:middle;cursor:pointer;transition:background-color .2s ease}
+        .be-switch-cursor{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:12px;background:#fff;transition:left .2s ease}
+        .be-switch-label{line-height:20px;font-size:14px;margin-left:3px;vertical-align:middle}
+        .be-switch-input{position:absolute;left:0;top:0;margin:0;opacity:0;width:100%;height:100%;z-index:2}
       </style>`;
     $('head').append(style)
   }
@@ -83,7 +90,11 @@
               <a href="javascript:;" class="title"><span>油猴插件推荐</span></a>
             </div>
             <div class="right">
-              <label><input type="checkbox" ${options.isShowDanmaku ? 'checked': ''} id="JShowDanmaku"/>是否预览弹幕</label>
+              <div class="be-switch-container setting-privacy-switcher${options.isShowDanmaku ? ' is-checked': ''}" id="JShowDanmaku">
+                <input type="checkbox" class="be-switch-input" value="${options.isShowDanmaku}">
+                <div class="be-switch"><i class="be-switch-cursor"></i></div>
+                <div class="be-switch-label"><span>是否预览弹幕</span></div>
+              </div>
               <button class="primary-btn roll-btn" id="JaccessKey"${options.accessKey ? ' style="display: none"' : ''}>
                 <span>${options.accessKey ? '删除授权' : '获取授权'}</span>
               </button>
@@ -136,9 +147,10 @@
       let rect = e.currentTarget.getBoundingClientRect();
       if($this.data('go') == 'av'){
         $this.find('.bili-watch-later').stop().fadeIn();
-        $this.find('.v-inline-player, .v-inline-danmaku').addClass('mouse-in visible');
+        $this.find('.v-inline-player').addClass('mouse-in visible');
         getPreviewImage($this, e.clientX - rect.left);
         if(options.isShowDanmaku){
+          $this.find('.v-inline-danmaku').addClass('mouse-in visible');
           getPreviewDanmaku($this)
         }
       }
@@ -177,10 +189,19 @@
       toast('复制命令成功')
       return false
     })
-    $('#JShowDanmaku').on('change', function(){
+    $('#JShowDanmaku').on('click', function(){
       const $this = $(this);
-      let val = $this.prop('checked');
-      options.isShowDanmaku = val
+      const $inp = $this.find('input');
+      let val = JSON.parse($inp.val());
+      options.isShowDanmaku = !val;
+      GM_setValue('biliAppDanmaku', options.isShowDanmaku);
+      $inp.val(options.isShowDanmaku);
+      if(options.isShowDanmaku){
+        $this.addClass('is-checked')
+      }else{
+        $this.removeClass('is-checked')
+      }
+      return false
     })
   }
   function toast(msg, duration = 2000){
@@ -581,21 +602,39 @@
   function setDanmakuRoll(el, danmakuData){
     if(danmakuData.length <= 0) return;
     const $tarDom = el.find('.v-inline-danmaku');
+    let $items = $tarDom.find('p');
     let outWidth = $tarDom.width();
-    let length = danmakuData.length > 5 ? 5 : danmakuData.length;
-    let items = $tarDom.find('p');
-    if(items.length > 0){
-      $tarDom.empty()
+    let lastWait = new Array(5).fill(800);
+    let defaultMoveOpts = {
+      pageSize: 5,
+      size: Math.ceil(danmakuData.length / 5),
+      defaultHeight: 18,
+      topSalt: 10,
+      dur: 5,
+      wait: 800
     }
-    for(let i = 0;i < length;i++){
-      let $html = $(`<p style="top: ${18 * i + 10}px;left: ${outWidth}px">${danmakuData[i]}</p>`);
-      $tarDom.append($html)
+    if($items.length > 0) $tarDom.empty();
+    for(let i = 0;i < danmakuData.length;i++){
+      let options = {
+        channel: i % defaultMoveOpts.pageSize,
+        startPosX: outWidth,
+        startPosY: i % 5 * defaultMoveOpts.defaultHeight + defaultMoveOpts.topSalt
+      };
+      let $html = $(`<p data-channel="${options.channel}" style="top: ${options.startPosY}px;left: ${options.startPosX}px">${danmakuData[i]}</p>`);
+      $tarDom.append($html);
+      options.width = $html.width();
+      options.moveX = options.width + outWidth;
+      options.dur = (options.width / 2 + outWidth) / (outWidth / defaultMoveOpts.dur);
+      $html.attr('data-wait', lastWait[options.channel]);
       setTimeout(() => {
         $html.css({
-          'transform': `translateX(-${$html.width() + outWidth}px)`,
+          'transform': `translateX(-${options.moveX}px)`,
+          'transition': `transform ${options.dur}s linear 0s`,
           'opacity': 1
         })
-      }, 800)
+      }, lastWait[options.channel]);
+      if(lastWait[options.channel] == 800) lastWait[options.channel] -= 1000;
+      lastWait[options.channel] += options.dur * 1000
     }
   }
 
