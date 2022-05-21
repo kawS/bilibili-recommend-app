@@ -30,10 +30,7 @@
 
 (function() {
   'use strict';
-  if (location.href.startsWith('https://www.mcbbs.net/template/mcbbs/image/special_photo_bg.png?')) {
-    window.stop();
-    return window.top.postMessage(location.href, 'https://www.bilibili.com')
-  }
+  
   let $list = null;
   let isWait = false;
   let options = {
@@ -45,6 +42,10 @@
     isShowDanmaku : GM_getValue('biliAppDanmaku') || false
   }
   function init(){
+    if (location.href.startsWith('https://www.mcbbs.net/template/mcbbs/image/special_photo_bg.png?')) {
+      window.stop();
+      return window.top.postMessage(location.href, 'https://www.bilibili.com')
+    }
     if(location.pathname != '/'){
       return
     }
