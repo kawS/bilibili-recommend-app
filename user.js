@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      1.5
+// @version      1.6
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -77,7 +77,7 @@
         .be-switch{position:relative;width:30px;height:16px;border-radius:8px;background-color:#ccd0d7;vertical-align:middle;cursor:pointer;transition:background-color .2s ease}
         .be-switch-cursor{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:12px;background:#fff;transition:left .2s ease}
         .be-switch-label{line-height:20px;font-size:14px;margin-left:3px;vertical-align:middle}
-        .be-switch-input{position:absolute;left:0;top:0;margin:0;opacity:0;width:100%;height:100%;z-index:2}
+        .be-switch-input{position:absolute;left:0;top:0;margin:0;opacity:0;width:100%;height:100%;z-index:2;display: none}
       </style>`;
     $('head').append(style)
   }
@@ -605,14 +605,13 @@
     const $tarDom = el.find('.v-inline-danmaku');
     let $items = $tarDom.find('p');
     let outWidth = $tarDom.width();
-    let lastWait = new Array(5).fill(800);
+    let lastWait = new Array(5).fill(600);
     let defaultMoveOpts = {
       pageSize: 5,
       size: Math.ceil(danmakuData.length / 5),
       defaultHeight: 18,
-      topSalt: 10,
-      dur: 5,
-      wait: 800
+      topSalt: 5,
+      dur: 5
     }
     if($items.length > 0) $tarDom.empty();
     for(let i = 0;i < danmakuData.length;i++){
@@ -622,20 +621,17 @@
         startPosY: i % 5 * defaultMoveOpts.defaultHeight + defaultMoveOpts.topSalt
       };
       let $html = $(`<p data-channel="${options.channel}" style="top: ${options.startPosY}px;left: ${options.startPosX}px">${danmakuData[i]}</p>`);
+      let wait = (lastWait[options.channel] + (Math.floor(Math.random() * 1000 + 100))) / 1000;
       $tarDom.append($html);
       options.width = $html.width();
       options.moveX = options.width + outWidth;
-      options.dur = (options.width / 2 + outWidth) / (outWidth / defaultMoveOpts.dur);
-      $html.attr('data-wait', lastWait[options.channel]);
-      setTimeout(() => {
-        $html.css({
-          'transform': `translateX(-${options.moveX}px)`,
-          'transition': `transform ${options.dur}s linear 0s`,
-          'opacity': 1
-        })
-      }, lastWait[options.channel]);
-      if(lastWait[options.channel] == 800) lastWait[options.channel] -= 1000;
-      lastWait[options.channel] += options.dur * 1000
+      options.dur = (options.width + outWidth) / (outWidth / defaultMoveOpts.dur);
+      $html.css({
+        'transform': `translateX(-${options.moveX}px)`,
+        'transition': `transform ${options.dur}s linear ${wait}s`,
+        'opacity': 1
+      })
+      lastWait[options.channel] = (wait + options.dur * 0.6) * 1000
     }
   }
 
