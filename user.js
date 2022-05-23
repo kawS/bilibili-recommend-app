@@ -23,7 +23,7 @@
 // @grant        GM_setClipboard
 // @run-at       document-idle
 
-// @require      https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js
+// @require      https://lib.sinaapp.com/js/jquery/3.1.0/jquery-3.1.0.min.js
 
 // @license      MIT
 // ==/UserScript==
@@ -433,14 +433,14 @@
                     </picture>
                   </div>
                 </a>
-              <a href="javascript:;" class="BBDown" data-id="${data.goto == 'av' ? 'av' + data.param : data.uri}">BBDown下载</a>
+                <a href="javascript:;" class="BBDown" data-id="${data.goto == 'av' ? 'av' + data.param : data.uri}">BBDown下载</a>
               </div>
               <div class="bili-video-card__info--right">
                 <a href="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" target="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}">
                   <h3 class="bili-video-card__info--tit" title="${data.title}">${data.title}</h3>
                 </a>
                 <p class="bili-video-card__info--bottom" style="${(data.rcmd_reason && data.rcmd_reason.content == '已关注') ? 'color: #f00' : data.badge ? 'color: #ff8f00' : ''}">
-                  <a class="bili-video-card__info--owner" href="https://space.bilibili.com/${data.mid}" target="https://space.bilibili.com/${data.mid}">
+                  <a class="bili-video-card__info--owner" href="https://space.bilibili.com/${data.mid}" target="https://space.bilibili.com/${data.mid}" ${data.name ? 'title="' + data.name + '"' : ''}>
                     <svg class="bili-video-card__info--owner__up">
                       <use xlink:href="#widget-up"></use>
                     </svg>
