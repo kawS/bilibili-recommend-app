@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      1.6
+// @version      1.7
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -23,14 +23,14 @@
 // @grant        GM_setClipboard
 // @run-at       document-idle
 
-// @require      https://lib.sinaapp.com/js/jquery/3.1.0/jquery-3.1.0.min.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js
 
 // @license      MIT
 // ==/UserScript==
 
 (function() {
   'use strict';
-  
+
   let $list = null;
   let isWait = false;
   let options = {
@@ -324,10 +324,15 @@
     options.itemHeight = $('.bili-grid').eq(0).find('.bili-video-card').height() * 4 + 20 * 3;
     // $('#recommend-list').css('min-height', options.itemHeight + 'px');
     showLoading(options.itemHeight);
+    let result = null;
     let url1 = `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`;
     let url2 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=' + ((Date.now() / 1000).toFixed(0) + Math.round(Math.random() * 100)) + (options.accessKey ? '&access_key=' + options.accessKey : '');
     let url3 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=' + ((Date.now() / 1000).toFixed(0) + (Math.round(Math.random() * 100) + 100)) + (options.accessKey ? '&access_key=' + options.accessKey : '');
-    let result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url3)]);
+    if(options.sizes - 10 > 10){
+      result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url3)]);
+    }else{
+      result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2)]);
+    }
     let data = null;
     let list = null;
     try {
