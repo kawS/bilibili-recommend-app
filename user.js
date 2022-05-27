@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      1.7
+// @version      1.8
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -53,9 +53,6 @@
     initStyle();
     intiHtml();
     initEvent();
-    if(options.accessKey){
-      $('#JaccessKey').hide()
-    }
     getRecommendList()
   }
   function initStyle(){
@@ -78,6 +75,8 @@
         .be-switch-cursor{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:12px;background:#fff;transition:left .2s ease}
         .be-switch-label{line-height:20px;font-size:14px;margin-left:3px;vertical-align:middle}
         .be-switch-input{position:absolute;left:0;top:0;margin:0;opacity:0;width:100%;height:100%;z-index:2;display: none}
+        #recommend .area-header{height: 34px;}
+        #recommend .roll-btn-wrap{top: 380px;z-index: 15}
       </style>`;
     $('head').append(style)
   }
@@ -96,7 +95,7 @@
                 <div class="be-switch"><i class="be-switch-cursor"></i></div>
                 <div class="be-switch-label"><span>是否预览弹幕</span></div>
               </div>
-              <button class="primary-btn roll-btn" id="JaccessKey"${options.accessKey ? ' style="display: none"' : ''}>
+              <button class="primary-btn roll-btn" id="JaccessKey"}>
                 <span>${options.accessKey ? '删除授权' : '获取授权'}</span>
               </button>
               <button class="primary-btn roll-btn" id="Jrefresh">
@@ -106,6 +105,12 @@
             </div>
           </div>
           <div class="eva-extension-body" id="recommend-list"></div>
+        </div>
+        <div class="roll-btn-wrap">
+          <button class="primary-btn roll-btn" id="JrefreshRight">
+            <svg style="transform:rotate(0deg);"><use xlink:href="#widget-roll"></use></svg>
+            <span>换一换</span>
+          </button>
         </div>
       </section>`;
     $position.after(html);
@@ -129,7 +134,7 @@
       }
       return false
     })
-    $('#Jrefresh').on('click', function(){
+    $('#Jrefresh, #JrefreshRight').on('click', function(){
       if($('.load-state').length > 0) return
       const $this = $(this);
       const reg = /(rotate\([\-\+]?((\d+)(deg))\))/i;
@@ -187,7 +192,7 @@
       const $this = $(this);
       let id = $this.data('id');
       GM_setClipboard(`BBDown -app -token ${options.accessKey} -mt -ia -p all "${id}"`);
-      toast('复制命令成功')
+      toast('复制BBDown命令行成功')
       return false
     })
     $('#JShowDanmaku').on('click', function(){
@@ -268,7 +273,7 @@
       isWait = false;
       return
     }
-    let $iframe = $(`<iframe src='${url}' style="display: none;" />`);
+    const $iframe = $(`<iframe src='${url}' style="display: none;" />`);
     $iframe.appendTo($('body'));
     let timeout = setTimeout(() => {
       $iframe.remove();
@@ -284,7 +289,7 @@
       if (key) {
         GM_setValue('biliAppHomeKey', options.accessKey = key[1]);
         toast('获取授权成功');
-        el.hide().find('span').text('删除授权');;
+        el.find('span').text('删除授权');;
         clearTimeout(timeout);
         $iframe.remove();
       } else {
@@ -324,28 +329,25 @@
     options.itemHeight = $('.bili-grid').eq(0).find('.bili-video-card').height() * 4 + 20 * 3;
     // $('#recommend-list').css('min-height', options.itemHeight + 'px');
     showLoading(options.itemHeight);
+    const token = options.accessKey ? '&access_key=' + options.accessKey : '';
+    const url1 = `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`;
+    const url2 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=' + ((Date.now() / 1000).toFixed(0)) + token;
     let result = null;
-    let url1 = `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`;
-    let url2 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=' + ((Date.now() / 1000).toFixed(0) + Math.round(Math.random() * 100)) + (options.accessKey ? '&access_key=' + options.accessKey : '');
-    let url3 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=' + ((Date.now() / 1000).toFixed(0) + (Math.round(Math.random() * 100) + 100)) + (options.accessKey ? '&access_key=' + options.accessKey : '');
+    let data = null;
+    let list = null;
     if(options.sizes - 10 > 10){
-      result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url3)]);
+      result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url2), getRecommend(url2)]);
     }else{
       result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2)]);
     }
-    let data = null;
-    let list = null;
     try {
       data = await result;
     } catch (error) {
       toast(error)
     }
     data[0] = new2old(data[0]);
-    list = data.reduce((pre, item) => {
-      return pre.concat(item)
-    })
+    list = unique(data);
     options.refresh += 1;
-    // console.log(list);
     updateRecommend(list)
   }
   function new2old(data){
@@ -375,10 +377,27 @@
       }
     })
   }
+  function unique(data){
+    const arr = data[0].concat(data[1], data[2] || [], data[3] || []);
+    let result = [];
+    let cidList = {};
+    for(let item of arr){
+      if(!cidList[item.cid]){
+        result.push(item);
+        cidList[item.cid] = true
+      }
+    }
+    return result.sort(function(){
+      return Math.random() - 0.5
+    })
+  }
   function updateRecommend(list){
     let html = '';
     for(let i=0;i<options.sizes;i++){
       let data = list[i];
+      if(!data){
+        continue
+      }
       html += `
         <div class="bili-video-card" style="display: block !important">
           <div class="bili-video-card__skeleton hide">
@@ -492,8 +511,8 @@
     }
   }
   async function watchlater(el){
+    const aid = el.data('aid');
     let type = el.hasClass('del') ? 'del' : 'add';
-    let aid = el.data('aid');
     let res = null;
     let data = null;
     try {
@@ -528,7 +547,7 @@
     }
   }
   async function getPreviewImage(el, e){
-    let aid = el.data('aid');
+    const aid = el.data('aid');
     let pvData = el[0].pvData;
     if(!pvData){
       let res = null;
@@ -548,7 +567,7 @@
     setPosition(el, e, pvData)
   }
   async function getPreviewDanmaku(el){
-    let aid = el.data('aid');
+    const aid = el.data('aid');
     let danmakuData = el[0].danmakuData;
     if(!danmakuData){
       let res = null;
