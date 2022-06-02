@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      1.8
+// @version      1.9
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -37,6 +37,8 @@
     maxClientWidth: $(window).width(),
     sizes: null,
     accessKey: GM_getValue('biliAppHomeKey'),
+    dateKey: GM_getValue('biliAppHomeKeyDate'),
+    timeoutKey: 30 * 24 * 60 * 60 * 1000,
     refresh: 1,
     itemHeight: 0,
     isShowDanmaku : GM_getValue('biliAppDanmaku') || false
@@ -53,6 +55,7 @@
     initStyle();
     intiHtml();
     initEvent();
+    checkKey();
     getRecommendList()
   }
   function initStyle(){
@@ -128,7 +131,7 @@
         $this.find('span').text('获取授权');
         delAccessKey()
       }
-      if(type == '获取授权'){
+      if(type == '获取授权' || type == '重新获取授权'){
         $this.find('span').text('获取中...');
         getAccessKey($this)
       }
@@ -139,8 +142,8 @@
       const $this = $(this);
       const reg = /(rotate\([\-\+]?((\d+)(deg))\))/i;
       let $svg = $this.find('svg');
-      var css = $svg.attr('style');
-      var wts = css.match(reg);
+      let css = $svg.attr('style');
+      let wts = css.match(reg);
       $svg.css('transform', `rotate(${parseFloat(wts[3]) + 360}deg)`);
       options.maxClientWidth = $(window).width();
       setSize(options.maxClientWidth);
@@ -237,7 +240,9 @@
   function delAccessKey(){
     isWait = false;
     options.accessKey = null;
+    options.dateKey = null;
     GM_deleteValue('biliAppHomeKey');
+    GM_deleteValue('biliAppHomeKeyDate');
     toast('获取删除成功');
   }
   async function getAccessKey(el){
@@ -288,6 +293,7 @@
       const key = ev.data.match(/access_key=([0-9a-z]{32})/);
       if (key) {
         GM_setValue('biliAppHomeKey', options.accessKey = key[1]);
+        GM_setValue('biliAppHomeKeyDate',  options.dateKey = +new Date());
         toast('获取授权成功');
         el.find('span').text('删除授权');;
         clearTimeout(timeout);
@@ -297,6 +303,20 @@
       }
     }
     isWait = false;
+  }
+  function checkKey(){
+    const nowDate = +new Date();
+    if(!options.dateKey) return;
+    if(options.dateKey == -1){
+      $('#JaccessKey').find('span').text('重新获取授权');
+      return
+    }
+    if(nowDate - options.dateKey > options.timeoutKey){
+      $('#JaccessKey').find('span').text('重新获取授权');
+      GM_setValue('biliAppHomeKeyDate',  options.dateKey = -1);
+      GM_deleteValue('biliAppHomeKey');
+      options.accessKey = null;
+    }
   }
   function getRecommend(url, type){
     const errmsg = '获取推荐视频失败';
@@ -490,9 +510,9 @@
       }
       if (second < 10) second = '0' + second;
       if (minute < 10) minute = '0' + minute;
-      return hour ? `${hour}:${minute}:${second}` : `${minute}:${second}`;
+      return hour ? `${hour}:${minute}:${second}` : `${minute}:${second}`
     } else {
-      return input > 9999 ? `${(input / 10000).toFixed(1)}万` : input || 0;
+      return input > 9999 ? `${(input / 10000).toFixed(1)}万` : input || 0
     }
   }
   function returnDateTxt(time){
@@ -505,9 +525,9 @@
   }
   function token(){
     try {
-      return document.cookie.match(/bili_jct=([0-9a-fA-F]{32})/)[1];
+      return document.cookie.match(/bili_jct=([0-9a-fA-F]{32})/)[1]
     } catch(e) {
-      return '';
+      return ''
     }
   }
   async function watchlater(el){
@@ -588,7 +608,7 @@
   }
   function setPosition(el, mouseX, pvData){
     const $tarDom = el.find('.v-inline-player');
-    const $duration = el.data('duration');
+    // const $duration = el.data('duration');
     const $pvbox = $tarDom.find('pv-box');
     const width = $tarDom.width();
     const height = $tarDom.height();
