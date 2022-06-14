@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      1.9
+// @version      2.0
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -33,6 +33,7 @@
 
   let $list = null;
   let isWait = false;
+  let isLoading = false;
   let options = {
     maxClientWidth: $(window).width(),
     sizes: null,
@@ -41,7 +42,9 @@
     timeoutKey: 30 * 24 * 60 * 60 * 1000,
     refresh: 1,
     itemHeight: 0,
-    isShowDanmaku : GM_getValue('biliAppDanmaku') || false
+    oneItemHeight: $('.bili-grid').eq(0).find('.bili-video-card').height(),
+    isShowDanmaku: GM_getValue('biliAppDanmaku') || false,
+    isShowRec: GM_getValue('biliAppRec') || false
   }
   function init(){
     if (location.href.startsWith('https://www.mcbbs.net/template/mcbbs/image/special_photo_bg.png?')) {
@@ -51,7 +54,7 @@
     if(location.pathname != '/'){
       return
     }
-    setSize(options.maxClientWidth);
+    setSize(options.maxClientWidth, options.isShowRec ? true : false);
     initStyle();
     intiHtml();
     initEvent();
@@ -71,7 +74,7 @@
         .v-inline-danmaku{position: absolute;top: 0;left: 0;width: 100%;height: 100%;z-index: 2;pointer-events: none;user-select: none;border-radius: inherit;opacity: 0;transition: opacity .2s linear;overflow: hidden}
         .v-inline-danmaku.visible{opacity: 1}
         .v-inline-danmaku p{position: absolute;color: #fff;text-shadow: #000 1px 0px 1px, #000 0px 1px 1px, #000 0px -1px 1px, #000 -1px 0px 1px;white-space: nowrap;opacity: 0}
-        .be-switch-container{position:relative;display:flex;height:20px;cursor:pointer;white-space:nowrap;align-items: center;}
+        .be-switch-container{position:relative;display:flex;margin:0 0 0 8px;height:20px;cursor:pointer;white-space:nowrap;align-items: center;}
         .be-switch-container.is-checked .be-switch{background-color:#00a1d6}
         .be-switch-container.is-checked .be-switch-cursor{left:17px}
         .be-switch{position:relative;width:30px;height:16px;border-radius:8px;background-color:#ccd0d7;vertical-align:middle;cursor:pointer;transition:background-color .2s ease}
@@ -85,6 +88,7 @@
   }
   function intiHtml(){
     const $position = $('.bili-grid').eq(1);
+    const $fullpage = $('#i_cecream');
     const html = `
       <section class="bili-grid" data-area='推荐' id="recommend">
         <div class="eva-extension-area">
@@ -93,6 +97,11 @@
               <a href="javascript:;" class="title"><span>油猴插件推荐</span></a>
             </div>
             <div class="right">
+              <div class="be-switch-container setting-privacy-switcher${options.isShowRec ? ' is-checked': ''}" id="JShowRec">
+                <input type="checkbox" class="be-switch-input" value="${options.isShowRec}">
+                <div class="be-switch"><i class="be-switch-cursor"></i></div>
+                <div class="be-switch-label"><span>是否只保留推荐视频</span></div>
+              </div>
               <div class="be-switch-container setting-privacy-switcher${options.isShowDanmaku ? ' is-checked': ''}" id="JShowDanmaku">
                 <input type="checkbox" class="be-switch-input" value="${options.isShowDanmaku}">
                 <div class="be-switch"><i class="be-switch-cursor"></i></div>
@@ -101,7 +110,7 @@
               <button class="primary-btn roll-btn" id="JaccessKey"}>
                 <span>${options.accessKey ? '删除授权' : '获取授权'}</span>
               </button>
-              <button class="primary-btn roll-btn" id="Jrefresh">
+              <button class="primary-btn roll-btn"${options.isShowRec ? ' style="display: none"' : ''} id="Jrefresh">
                 <svg style="transform: rotate(0deg);"><use xlink:href="#widget-roll"></use></svg>
                 <span>换一换</span>
               </button>
@@ -109,14 +118,18 @@
           </div>
           <div class="eva-extension-body" id="recommend-list"></div>
         </div>
-        <div class="roll-btn-wrap">
+        <div class="roll-btn-wrap"${options.isShowRec ? ' style="display: none"' : ''}>
           <button class="primary-btn roll-btn" id="JrefreshRight">
             <svg style="transform:rotate(0deg);"><use xlink:href="#widget-roll"></use></svg>
             <span>换一换</span>
           </button>
         </div>
       </section>`;
-    $position.after(html);
+    if(options.isShowRec){
+      $fullpage.find('.bili-layout').hide().after(`<main class="bili-layout" id="scrollwrap">${html}</main>`);
+    }else{
+      $position.after(html);
+    }
     $list = $('#recommend-list');
   }
   function initEvent(){
@@ -212,12 +225,42 @@
       }
       return false
     })
+    $('#JShowRec').on('click', function(){
+      const $this = $(this);
+      const $inp = $this.find('input');
+      let val = JSON.parse($inp.val());
+      options.isShowRec = !val;
+      GM_setValue('biliAppRec', options.isShowRec);
+      $inp.val(options.isShowRec);
+      if(options.isShowRec){
+        $this.addClass('is-checked')
+      }else{
+        $this.removeClass('is-checked')
+      }
+      toast('2秒后刷新页面，请稍后！', function(){
+        location.reload()
+      })
+      return false
+    })
+    if(options.isShowRec){
+      $(window).on('scroll', function(){
+        const $this = $(this);
+        if(($this.scrollTop() + options.oneItemHeight * 3) > ($(document).height() - $(window).height())){
+          if(isLoading) return;
+          isLoading = true;
+          options.maxClientWidth = $(window).width();
+          setSize(options.maxClientWidth, true);
+          getRecommendList()
+        }
+      })
+    }
   }
-  function toast(msg, duration = 2000){
+  function toast(msg, cb, duration = 2000){
     const $toast = $(`<div class="toast">${msg}</div>`);
     $toast.appendTo($('body'));
     setTimeout(() => {
-      $toast.remove()
+      $toast.remove();
+      typeof cb == 'function' && cb()
     }, duration)
   }
   function showLoading(minHeight){
@@ -228,13 +271,14 @@
         </p>
       </div>`)
   }
-  function setSize(width){
+  function setSize(width, setRow){
+    let row = setRow ? 6 : 4;
     if(width < 1684){
-      options.sizes = 5 * 4
+      options.sizes = 5 * row
     }else if(width >= 2183){
-      options.sizes = 7 * 4
+      options.sizes = 7 * row
     }else{
-      options.sizes = 6 * 4
+      options.sizes = 6 * row
     }
   }
   function delAccessKey(){
@@ -346,29 +390,42 @@
     })
   }
   async function getRecommendList(){
-    options.itemHeight = $('.bili-grid').eq(0).find('.bili-video-card').height() * 4 + 20 * 3;
-    // $('#recommend-list').css('min-height', options.itemHeight + 'px');
-    showLoading(options.itemHeight);
+    if(!options.isShowRec){
+      options.itemHeight = $('.bili-grid').eq(0).find('.bili-video-card').height() * 4 + 20 * 3;
+      showLoading(options.itemHeight);
+    }
     const token = options.accessKey ? '&access_key=' + options.accessKey : '';
     const url1 = `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`;
     const url2 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=' + ((Date.now() / 1000).toFixed(0)) + token;
     let result = null;
     let data = null;
     let list = null;
-    if(options.sizes - 10 > 10){
-      result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url2), getRecommend(url2)]);
+    let isLar = options.sizes - 10 > 10;
+    if(options.isShowRec){
+      result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url1, 'new')]);
     }else{
-      result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2)]);
+      if(isLar){
+        result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url1, 'new'), getRecommend(url2)])
+      }else{
+        result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2)])
+      }
     }
     try {
       data = await result;
     } catch (error) {
       toast(error)
     }
-    data[0] = new2old(data[0]);
+    if(options.isShowRec || isLar){
+      data[0] = new2old(data[0]);
+      data[2] = new2old(data[2]);
+      options.isShowRec && (data[4] = new2old(data[4]))
+    }else{
+      data[0] = new2old(data[0])
+    }
     list = unique(data);
     options.refresh += 1;
-    updateRecommend(list)
+    updateRecommend(list);
+    !$('.bili-footer').is('hidden') && $('.bili-footer').hide()
   }
   function new2old(data){
     return data.map((item) => {
@@ -398,7 +455,7 @@
     })
   }
   function unique(data){
-    const arr = data[0].concat(data[1], data[2] || [], data[3] || []);
+    const arr = data[0].concat(data[1], data[2] || [], data[3] || [], data[4] || []);
     let result = [];
     let cidList = {};
     for(let item of arr){
@@ -497,7 +554,14 @@
           </div>
         </div>`;
     }
-    $list.html(html)
+    if(options.isShowRec){
+      $list.append(html);
+      setTimeout(() => {
+        isLoading = false
+      }, 300)
+    }else{
+      $list.html(html)
+    }
   }
   function formatNumber(input, format = 'number'){
     if (format == 'time') {
@@ -641,7 +705,7 @@
     }
     $tarDom.html(`
       <div class="pv-box" style="background: url(https:${imgUrl}) -${x}px -${y}px no-repeat;background-size: ${sizeX}px ${sizeY}px;height: 100%;pointer-events:none"></div>
-      <div class="pv-bar" style="position: absolute;left: 0;bottom: 0;background: #f00;width: ${bar}%;height: 2px;z-index: 2"></div>
+      <div class="pv-bar" style="position: absolute;left: 0;bottom: 0;background: #fb7299;width: ${bar}%;height: 2px;z-index: 2"></div>
     `)
   }
   function setDanmakuRoll(el, danmakuData){
