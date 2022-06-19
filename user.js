@@ -51,6 +51,10 @@
       window.stop();
       return window.top.postMessage(location.href, 'https://www.bilibili.com')
     }
+    localStorage.setItem('bilibili_player_force_DolbyAtmos&8K&HDR', 1);
+    Object.defineProperty(navigator, 'userAgent', {
+        value: "Mozilla/5.0 (Macintosh; Intel Mac OS X 12_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Safari/605.1.15"
+    });
     if(location.pathname != '/'){
       return
     }
@@ -449,7 +453,7 @@
         tname: '',
         uri: item.uri,
         rcmd_reason: {
-          content: item.rcmd_reason.reason_type == 1 ? '已关注' : item.rcmd_reason.content ? item.rcmd_reason.content : ''
+          content: item.rcmd_reason?.reason_type == 1 ? '已关注' : item.rcmd_reason?.content ? item.rcmd_reason.content : ''
         }
       }
     })
