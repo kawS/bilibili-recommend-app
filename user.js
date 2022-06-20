@@ -1,11 +1,14 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      2.0
+// @version      2.2
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=bilibili.com
+// @icon         https://www.bilibili.com/favicon.ico
+// @compatible   chrome
+// @compatible   firefox
+// @compatible   safari
 
 // @source       https://github.com/kawS/bilibili-recommend-app
 
@@ -30,47 +33,52 @@
 
 (function() {
   'use strict';
-
+  
+  const itemHeight = $('.bili-grid').eq(0).find('.bili-video-card').height();
   let $list = null;
   let isWait = false;
-  let isLoading = false;
+  let isLoading = true;
   let options = {
-    maxClientWidth: $(window).width(),
+    clientWidth: $(window).width(),
     sizes: null,
+    timeoutKey: 2592000000,
+    refresh: 1,
+    oneItemHeight: itemHeight,
+    listHeight: itemHeight * 4 + 20 * 3,
     accessKey: GM_getValue('biliAppHomeKey'),
     dateKey: GM_getValue('biliAppHomeKeyDate'),
-    timeoutKey: 30 * 24 * 60 * 60 * 1000,
-    refresh: 1,
-    itemHeight: 0,
-    oneItemHeight: $('.bili-grid').eq(0).find('.bili-video-card').height(),
     isShowDanmaku: GM_getValue('biliAppDanmaku') || false,
     isShowRec: GM_getValue('biliAppRec') || false
   }
   function init(){
-    if (location.href.startsWith('https://www.mcbbs.net/template/mcbbs/image/special_photo_bg.png?')) {
+    if(location.href.startsWith('https://www.mcbbs.net/template/mcbbs/image/special_photo_bg.png?')){
       window.stop();
       return window.top.postMessage(location.href, 'https://www.bilibili.com')
     }
-    localStorage.setItem('bilibili_player_force_DolbyAtmos&8K&HDR', 1);
-    Object.defineProperty(navigator, 'userAgent', {
-        value: "Mozilla/5.0 (Macintosh; Intel Mac OS X 12_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Safari/605.1.15"
-    });
-    if(location.pathname != '/'){
-      return
-    }
-    setSize(options.maxClientWidth, options.isShowRec ? true : false);
+    if(location.pathname != '/') return;
+    setSize(options.clientWidth, options.isShowRec);
     initStyle();
     intiHtml();
     initEvent();
-    checkKey();
+    checkAccessKey();
     getRecommendList()
+  }
+  function setSize(width, setRow){
+    let row = setRow ? 6 : 4;
+    if(width < 1684){
+      options.sizes = 5 * row
+    }else if(width >= 2183){
+      options.sizes = 7 * row
+    }else{
+      options.sizes = 6 * row
+    }
   }
   function initStyle(){
     const style = `
       <style>
         @keyframes turn{0%{-webkit-transform:rotate(0deg)}100%{-webkit-transform:rotate(360deg)}}
         .taglike{position: absolute;bottom: 25px;left: 8px;padding: 0 2px;height: 18px;line-height: 18px;font-size: 12px;}
-        .load-state{position: absolute;top: 0;left: 0;background: rgba(255,255,255,.8);width: 100%;height: 100%;min-height: 240px;border-radius: 4px;font-size: 3rem;text-align: center;z-index: 50}
+        .load-state{position: absolute;top: 0;left: 0;background: rgba(0,0,0,.8);width: 100%;height: 100%;min-height: 240px;border-radius: 4px;font-size: 3rem;color: #fff;text-align: center;z-index: 50}
         .load-state .loading{line-height: 240px}
         .load-state .loading svg{margin:0 10px 0 0;width:2rem;height:2rem;transform: rotate(0deg);animation:turn 1s linear infinite;transition: transform .5s ease}
         .toast{position: fixed;top: 30%;left: 50%;z-index: 999999;margin-left: -180px;padding: 12px 24px;font-size: 14px;background: rgba(0,0,0,.8);width: 360px;border-radius: 6px;color: #fff;text-align: center}
@@ -85,6 +93,7 @@
         .be-switch-cursor{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:12px;background:#fff;transition:left .2s ease}
         .be-switch-label{line-height:20px;font-size:14px;margin-left:3px;vertical-align:middle}
         .be-switch-input{position:absolute;left:0;top:0;margin:0;opacity:0;width:100%;height:100%;z-index:2;display: none}
+        .bili-video-card .bili-video-card__info--author{display: -webkit-box!important;}
         #recommend .area-header{height: 34px;}
         #recommend .roll-btn-wrap{top: 380px;z-index: 15}
       </style>`;
@@ -94,11 +103,11 @@
     const $position = $('.bili-grid').eq(1);
     const $fullpage = $('#i_cecream');
     const html = `
-      <section class="bili-grid" data-area='推荐' id="recommend">
+      <section class="bili-grid" data-area='Tampermonkey插件推荐' id="recommend">
         <div class="eva-extension-area">
           <div class="area-header">
             <div class="left">
-              <a href="javascript:;" class="title"><span>油猴插件推荐</span></a>
+              <a href="javascript:;" class="title"><span>Tampermonkey插件推荐</span></a>
             </div>
             <div class="right">
               <div class="be-switch-container setting-privacy-switcher${options.isShowRec ? ' is-checked': ''}" id="JShowRec">
@@ -129,6 +138,7 @@
           </button>
         </div>
       </section>`;
+    if($fullpage.length <= 0) return;
     if(options.isShowRec){
       $fullpage.find('.bili-layout').hide().after(`<main class="bili-layout" id="scrollwrap">${html}</main>`);
     }else{
@@ -140,9 +150,7 @@
     $('#JaccessKey').on('click', function(){
       const $this = $(this);
       let type = $this.text().trim();
-      if(isWait){
-        return
-      }
+      if(isWait) return;
       isWait = true
       if(type == '删除授权'){
         $this.find('span').text('获取授权');
@@ -155,15 +163,15 @@
       return false
     })
     $('#Jrefresh, #JrefreshRight').on('click', function(){
-      if($('.load-state').length > 0) return
+      if($('.load-state').length > 0) return;
       const $this = $(this);
       const reg = /(rotate\([\-\+]?((\d+)(deg))\))/i;
       let $svg = $this.find('svg');
       let css = $svg.attr('style');
       let wts = css.match(reg);
       $svg.css('transform', `rotate(${parseFloat(wts[3]) + 360}deg)`);
-      options.maxClientWidth = $(window).width();
-      setSize(options.maxClientWidth);
+      options.clientWidth = $(window).width();
+      setSize(options.clientWidth);
       getRecommendList();
       return false
     })
@@ -172,7 +180,7 @@
       const $this = $(this);
       let rect = e.currentTarget.getBoundingClientRect();
       if($this.data('go') == 'av'){
-        $this.find('.bili-watch-later').stop().fadeIn();
+        $this.find('.bili-watch-later').show();
         $this.find('.v-inline-player').addClass('mouse-in visible');
         getPreviewImage($this, e.clientX - rect.left);
         if(options.isShowDanmaku){
@@ -184,7 +192,7 @@
       e.stopPropagation();
       const $this = $(this);
       if($this.data('go') == 'av'){
-        $this.find('.bili-watch-later').stop().fadeOut();
+        $this.find('.bili-watch-later').hide();
         $this.find('.v-inline-player, .v-inline-danmaku').removeClass('mouse-in visible');
       }
     }).on('mousemove', '.bili-video-card__image', function(e){
@@ -199,11 +207,11 @@
     }).on('mouseenter', '.bili-watch-later', function(e){
       e.stopPropagation();
       const $this = $(this);
-      $this.find('span').stop().fadeIn()
+      $this.find('span').show()
     }).on('mouseleave', '.bili-watch-later', function(e){
       e.stopPropagation();
       const $this = $(this);
-      $this.find('span').stop().fadeOut()
+      $this.find('span').hide()
     }).on('click', '.bili-watch-later', function(){
       const $this = $(this);
       watchlater($this);
@@ -252,8 +260,8 @@
         if(($this.scrollTop() + options.oneItemHeight * 3) > ($(document).height() - $(window).height())){
           if(isLoading) return;
           isLoading = true;
-          options.maxClientWidth = $(window).width();
-          setSize(options.maxClientWidth, true);
+          options.clientWidth = $(window).width();
+          setSize(options.clientWidth, true);
           getRecommendList()
         }
       })
@@ -269,21 +277,11 @@
   }
   function showLoading(minHeight){
     $list.prepend(`
-      <div class="load-state spread-module" style="min-height:${minHeight}px">
+      <div class="load-state spread-module" style="height:${minHeight}px">
         <p class="loading" style="line-height:${minHeight / 2}px">
           <svg><use xlink:href="#widget-roll"></use></svg>正在加载...
         </p>
       </div>`)
-  }
-  function setSize(width, setRow){
-    let row = setRow ? 6 : 4;
-    if(width < 1684){
-      options.sizes = 5 * row
-    }else if(width >= 2183){
-      options.sizes = 7 * row
-    }else{
-      options.sizes = 6 * row
-    }
   }
   function delAccessKey(){
     isWait = false;
@@ -291,9 +289,9 @@
     options.dateKey = null;
     GM_deleteValue('biliAppHomeKey');
     GM_deleteValue('biliAppHomeKeyDate');
-    toast('获取删除成功');
+    toast('删除授权成功');
   }
-  async function getAccessKey(el){
+  async function getAccessKey($el){
     let url = null;
     let res = null;
     let data = null;
@@ -311,13 +309,13 @@
       toast(error)
     }
     if (data.code || !data.data) {
-      el.find('span').text('获取授权');
+      $el.find('span').text('获取授权');
       toast(data.msg || data.message || data.code)
     } else if (!data.data.has_login) {
-      el.find('span').text('获取授权');
+      $el.find('span').text('获取授权');
       toast('你必须登录B站之后才能使用授权')
     } else if (!data.data.confirm_uri) {
-      el.find('span').text('获取授权');
+      $el.find('span').text('获取授权');
       toast('无法获得授权网址')
     } else {
       url = data.data.confirm_uri
@@ -330,7 +328,7 @@
     $iframe.appendTo($('body'));
     let timeout = setTimeout(() => {
       $iframe.remove();
-      el.find('span').text('获取授权');;
+      $el.find('span').text('获取授权');;
       toast('获取授权超时')
     }, 5000);
     window.onmessage = ev => {
@@ -343,7 +341,7 @@
         GM_setValue('biliAppHomeKey', options.accessKey = key[1]);
         GM_setValue('biliAppHomeKeyDate',  options.dateKey = +new Date());
         toast('获取授权成功');
-        el.find('span').text('删除授权');;
+        $el.find('span').text('删除授权');;
         clearTimeout(timeout);
         $iframe.remove();
       } else {
@@ -352,7 +350,7 @@
     }
     isWait = false;
   }
-  function checkKey(){
+  function checkAccessKey(){
     const nowDate = +new Date();
     if(!options.dateKey) return;
     if(options.dateKey == -1){
@@ -394,9 +392,17 @@
     })
   }
   async function getRecommendList(){
-    if(!options.isShowRec){
-      options.itemHeight = $('.bili-grid').eq(0).find('.bili-video-card').height() * 4 + 20 * 3;
-      showLoading(options.itemHeight);
+    const $listwp = $('#recommend-list');
+    if(options.refresh == 1){
+      $listwp.height(options.listHeight)
+      showLoading(options.listHeight);
+    }else{
+      if($listwp.attr('style')){
+        $listwp.removeAttr('style')
+      }
+      if(!options.isShowRec){
+        showLoading(options.listHeight);
+      }
     }
     const token = options.accessKey ? '&access_key=' + options.accessKey : '';
     const url1 = `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`;
@@ -453,7 +459,7 @@
         tname: '',
         uri: item.uri,
         rcmd_reason: {
-          content: item.rcmd_reason?.reason_type == 1 ? '已关注' : item.rcmd_reason?.content ? item.rcmd_reason.content : ''
+          content: item.rcmd_reason?.reason_type == 1 ? '已关注' : item.rcmd_reason?.content || ''
         }
       }
     })
@@ -560,6 +566,7 @@
     }
     if(options.isShowRec){
       $list.append(html);
+      $('.load-state').remove();
       setTimeout(() => {
         isLoading = false
       }, 300)
@@ -585,11 +592,14 @@
   }
   function returnDateTxt(time){
     if (!time) return '';
+    let diffYear = new Date().getFullYear();
     let date = new Date(time * 1000);
     let year = date.getFullYear();
     let month = date.getMonth() + 1;
     let day = date.getDate();
-    return `· ${year}-${month < 10 ? '0' + month : month}-${day < 10 ? '0' + day : day}`
+    return diffYear == year ? 
+            `· ${month < 10 ? '0' + month : month}-${day < 10 ? '0' + day : day}` :
+            `· ${year}-${month < 10 ? '0' + month : month}-${day < 10 ? '0' + day : day}`
   }
   function token(){
     try {
@@ -598,9 +608,9 @@
       return ''
     }
   }
-  async function watchlater(el){
-    const aid = el.data('aid');
-    let type = el.hasClass('del') ? 'del' : 'add';
+  async function watchlater($el){
+    const aid = $el.data('aid');
+    let type = $el.hasClass('del') ? 'del' : 'add';
     let res = null;
     let data = null;
     try {
@@ -622,21 +632,21 @@
     }
     if(data.code == 0){
       if(type == 'add'){
-        el.addClass('del').find('span').text('移除');
-        el.find('svg').html('<use xlink:href="#widget-watch-save"></use>');
+        $el.addClass('del').find('span').text('移除');
+        $el.find('svg').html('<use xlink:href="#widget-watch-save"></use>');
         toast('添加成功')
       }else{
-        el.removeClass('del').find('span').text('稍后再看');
-        el.find('svg').html('<use xlink:href="#widget-watch-later"></use>');
+        $el.removeClass('del').find('span').text('稍后再看');
+        $el.find('svg').html('<use xlink:href="#widget-watch-later"></use>');
         toast('移除成功')
       }
     }else{
       toast(data.message)
     }
   }
-  async function getPreviewImage(el, e){
-    const aid = el.data('aid');
-    let pvData = el[0].pvData;
+  async function getPreviewImage($el, e){
+    const aid = $el.data('aid');
+    let pvData = $el[0].pvData;
     if(!pvData){
       let res = null;
       let data = null;
@@ -650,13 +660,13 @@
       } catch (error) {
         toast(error)
       }
-      pvData = el[0].pvData = data.data;
+      pvData = $el[0].pvData = data.data;
     }
-    setPosition(el, e, pvData)
+    setPosition($el, e, pvData)
   }
-  async function getPreviewDanmaku(el){
-    const aid = el.data('aid');
-    let danmakuData = el[0].danmakuData;
+  async function getPreviewDanmaku($el){
+    const aid = $el.data('aid');
+    let danmakuData = $el[0].danmakuData;
     if(!danmakuData){
       let res = null;
       let data = null;
@@ -670,13 +680,13 @@
       } catch (error) {
         toast(error)
       }
-      danmakuData = el[0].danmakuData = data.data
+      danmakuData = $el[0].danmakuData = data.data
     }
-    setDanmakuRoll(el, danmakuData);
+    setDanmakuRoll($el, danmakuData);
   }
-  function setPosition(el, mouseX, pvData){
-    const $tarDom = el.find('.v-inline-player');
-    // const $duration = el.data('duration');
+  function setPosition($el, mouseX, pvData){
+    const $tarDom = $el.find('.v-inline-player');
+    // const $duration = $el.data('duration');
     const $pvbox = $tarDom.find('pv-box');
     const width = $tarDom.width();
     const height = $tarDom.height();
@@ -712,9 +722,9 @@
       <div class="pv-bar" style="position: absolute;left: 0;bottom: 0;background: #fb7299;width: ${bar}%;height: 2px;z-index: 2"></div>
     `)
   }
-  function setDanmakuRoll(el, danmakuData){
+  function setDanmakuRoll($el, danmakuData){
     if(danmakuData.length <= 0) return;
-    const $tarDom = el.find('.v-inline-danmaku');
+    const $tarDom = $el.find('.v-inline-danmaku');
     let $items = $tarDom.find('p');
     let outWidth = $tarDom.width();
     let lastWait = new Array(5).fill(600);
