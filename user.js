@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      2.3
+// @version      2.4
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -94,9 +94,21 @@
         .be-switch-label{line-height:20px;font-size:14px;margin-left:3px;vertical-align:middle}
         .be-switch-input{position:absolute;left:0;top:0;margin:0;opacity:0;width:100%;height:100%;z-index:2;display: none}
         .lk{line-height: 20px;text-decoration: underline;}
+        .bili-video-card .bili-video-card__info{position: relative}
+        .bili-video-card .bili-video-card__info .ctrl{position: absolute;bottom: 0;right: 0;background: rgba(0,0,0,.8);width: 100%;height: 0;border-radius: 6px;color: #fff;z-index: 15;display: none}
+        .bili-video-card .bili-video-card__info .ctrl .tb{width: 100%;height: 100%;font-size: 12px;text-align: center;display: flex;flex-direction: column;}
+        .bili-video-card .bili-video-card__info .tb .sp{width: 100%;flex: 2;display: flex;align-items: center;justify-content: center;}
+        .bili-video-card .bili-video-card__info .tb .sp a{flex: 1}
+        .bili-video-card .bili-video-card__info .tb .dislike{flex: 4;}
+        .bili-video-card .bili-video-card__info .tb .dislike .tlt{font-size: 14px}
+        .bili-video-card .bili-video-card__info .tb .dislike a{padding: 5px 0 0 0}
+        .bili-video-card .bili-video-card__info .tb .dislike .ready, .bili-video-card .bili-video-card__info .tb .dislike .over{height: 100%;display: flex;flex-direction: column;justify-content: center;}
+        .bili-video-card .bili-video-card__info .tb .dislike .over{font-size: 14px;display: none}
+        .bili-video-card .bili-video-card__info .tb .dislike .over a{font-size: 12px}
+        .bili-video-card .bvcd-left{position: absolute;top: 0;left: 0;width: 45px;}
         .bili-video-card .bili-video-card__info--author{display: -webkit-box!important;}
-        .bili-video-card .bvcd-left{width: 55px;}
-        .bili-video-card .bili-video-card__info--tit{padding-right: 0}
+        .bili-video-card .bili-video-card__info--tit{position: relative;padding: 0 20px 0 45px}
+        .bili-video-card .bili-video-card__info--tit .more{position: absolute;bottom: 0;right: 0;width: 20px;text-align: right;cursor: pointer;fill: var(--graph_icon)}
         #recommend .area-header{height: 34px;}
         #recommend .roll-btn-wrap{top: 380px;z-index: 15}
       </style>`;
@@ -184,7 +196,7 @@
       const $this = $(this);
       let rect = e.currentTarget.getBoundingClientRect();
       if($this.data('go') == 'av'){
-        $this.find('.bili-watch-later').show();
+        // $this.find('.bili-watch-later').show();
         $this.find('.v-inline-player').addClass('mouse-in visible');
         getPreviewImage($this, e.clientX - rect.left);
         if(options.isShowDanmaku){
@@ -196,7 +208,7 @@
       e.stopPropagation();
       const $this = $(this);
       if($this.data('go') == 'av'){
-        $this.find('.bili-watch-later').hide();
+        // $this.find('.bili-watch-later').hide();
         $this.find('.v-inline-player, .v-inline-danmaku').removeClass('mouse-in visible');
       }
     }).on('mousemove', '.bili-video-card__image', function(e){
@@ -208,24 +220,50 @@
           setPosition($this, e.clientX - rect.left, $this[0].pvData)
         }
       }
-    }).on('mouseenter', '.bili-watch-later', function(e){
-      e.stopPropagation();
-      const $this = $(this);
-      $this.find('span').show()
-    }).on('mouseleave', '.bili-watch-later', function(e){
-      e.stopPropagation();
-      const $this = $(this);
-      $this.find('span').hide()
-    }).on('click', '.bili-watch-later', function(){
+    })
+    // .on('mouseenter', '.bili-watch-later', function(e){
+    //   e.stopPropagation();
+    //   const $this = $(this);
+    //   $this.find('span').show()
+    // })
+    // .on('mouseleave', '.bili-watch-later', function(e){
+    //   e.stopPropagation();
+    //   const $this = $(this);
+    //   $this.find('span').hide()
+    // })
+    // .on('click', '.bili-watch-later', function(){
+    //   const $this = $(this);
+    //   watchlater($this);
+    //   return false
+    // })
+    .on('click', '#Jwatch', function(){
       const $this = $(this);
       watchlater($this);
       return false
-    }).on('click', '.BBDown', function(){
+    }).on('click', '.dislike .dl', function(){
+      const $this = $(this);
+      dislike($this);
+      return false
+    }).on('click', '#Jreturn', function(){
+      const $this = $(this);
+      dislike($this, true);
+      return false
+    }).on('click', '#Jbbdown', function(){
       const $this = $(this);
       let id = $this.data('id');
-      GM_setClipboard(`BBDown -app -token ${options.accessKey} -mt -ia -p all "${id}"`);
+      GM_setClipboard(`BBDown -app -token ${options.accessKey} -mt -ia -p ALL "${id}"`);
       toast('复制BBDown命令行成功')
       return false
+    }).on('click', '.more', function(){
+      const $this = $(this);
+      const $wp = $this.closest('.bili-video-card__wrap');
+      $wp.find('.ctrl').css({
+        'height': $wp.height()
+      }).show();
+      return false
+    }).on('mouseleave', '.ctrl', function(){
+      const $this = $(this);
+      $this.hide()
     })
     $('#JShowDanmaku').on('click', function(){
       const $this = $(this);
@@ -438,7 +476,7 @@
     }
     list = unique(data);
     options.refresh += 1;
-    !$('.bili-footer').is('hidden') && $('.bili-footer').hide()
+    !$('.bili-footer').is('hidden') && $('.bili-footer').hide();
     updateRecommend(list);
   }
   function new2old(data){
@@ -548,11 +586,13 @@
                     </picture>
                   </div>
                 </a>
-                <a href="javascript:;" class="BBDown" data-id="${data.goto == 'av' ? 'av' + data.param : data.uri}">BBDown下载</a>
               </div>
               <div class="bili-video-card__info--right">
                 <h3 class="bili-video-card__info--tit" title="${data.title}">
                   <a href="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" target="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}">${data.title}</a>
+                  <div class="more">
+                    <svg width="20" height="24" viewBox="0 0 15 24" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.7484 5.49841C13.7484 6.46404 12.9656 7.24683 11.9999 7.24683C11.0343 7.24683 10.2515 6.46404 10.2515 5.49841C10.2515 4.53279 11.0343 3.75 11.9999 3.75C12.9656 3.75 13.7484 4.53279 13.7484 5.49841ZM13.7484 18.4985C13.7484 19.4641 12.9656 20.2469 11.9999 20.2469C11.0343 20.2469 10.2515 19.4641 10.2515 18.4985C10.2515 17.5328 11.0343 16.75 11.9999 16.75C12.9656 16.75 13.7484 17.5328 13.7484 18.4985ZM11.9999 13.7485C12.9656 13.7485 13.7484 12.9656 13.7484 12C13.7484 11.0343 12.9656 10.2515 11.9999 10.2515C11.0343 10.2515 10.2515 11.0343 10.2515 12C10.2515 12.9656 11.0343 13.7485 11.9999 13.7485Z"></path></svg>
+                  </div>
                 </h3>
                 <p class="bili-video-card__info--bottom" style="${(data.rcmd_reason && data.rcmd_reason.content == '已关注') ? 'color: #f00' : data.badge ? 'color: #ff8f00' : ''}">
                   <a class="bili-video-card__info--owner" href="https://space.bilibili.com/${data.mid}" target="https://space.bilibili.com/${data.mid}" ${data.name ? 'title="' + data.name + '"' : ''}>
@@ -563,6 +603,28 @@
                     <span class="bili-video-card__info--date"${data.goto == 'av' ? '' : ' style="display: none"'}>${returnDateTxt(data.ctime)}</span>
                   </a>
                 </p>
+              </div>
+              <div class="ctrl">
+                <div class="tb">
+                  <div class="sp">
+                    <a href="javascript:;" data-aid="${data.param}" id="Jwatch">稍后再看</a>
+                    <a href="javascript:;" data-id="${data.goto == 'av' ? 'av' + data.param : data.uri}" id="Jbbdown">BBDown下载</a>
+                  </div>
+                  <div class="dislike"${options.accessKey ? '' : data.goto == 'av' ? '' : ' style="display: none"'}>
+                    <div class="ready">
+                      <div class="tlt">-- 减少相似内容推荐 --</div>
+                      <a href="javascript:;" class="dl" data-rsid="4" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">UP主</a>
+                      <a href="javascript:;" class="dl" data-rsid="1" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">不感兴趣</a>
+                      <a href="javascript:;" class="dl" data-rsid="12" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">此类内容过多</a>
+                      <a href="javascript:;" class="dl" data-rsid="13" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">推荐过</a>
+                    </div>
+                    <div class="over">
+                      <div class="reason"></div>
+                      减少相似内容推荐
+                      <a href="javascript:;" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}" id="Jreturn">撤销</a>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -599,14 +661,12 @@
   }
   function returnDateTxt(time){
     if (!time) return '';
-    let diffYear = new Date().getFullYear();
     let date = new Date(time * 1000);
     let year = date.getFullYear();
     let month = date.getMonth() + 1;
     let day = date.getDate();
-    return diffYear == year ? 
-            `· ${month < 10 ? '0' + month : month}-${day < 10 ? '0' + day : day}` :
-            `· ${year}-${month < 10 ? '0' + month : month}-${day < 10 ? '0' + day : day}`
+    // return `· ${year}-${month < 10 ? '0' + month : month}-${day < 10 ? '0' + day : day}`
+    return `· ${month}-${day}`
   }
   function token(){
     try {
@@ -638,13 +698,20 @@
       toast(error)
     }
     if(data.code == 0){
+      // if(type == 'add'){
+      //   $el.addClass('del').find('span').text('移除');
+      //   $el.find('svg').html('<use xlink:href="#widget-watch-save"></use>');
+      //   toast('添加成功')
+      // }else{
+      //   $el.removeClass('del').find('span').text('稍后再看');
+      //   $el.find('svg').html('<use xlink:href="#widget-watch-later"></use>');
+      //   toast('移除成功')
+      // }
       if(type == 'add'){
-        $el.addClass('del').find('span').text('移除');
-        $el.find('svg').html('<use xlink:href="#widget-watch-save"></use>');
+        $el.addClass('del').text('移除视频');
         toast('添加成功')
       }else{
-        $el.removeClass('del').find('span').text('稍后再看');
-        $el.find('svg').html('<use xlink:href="#widget-watch-later"></use>');
+        $el.removeClass('del').text('稍后再看');
         toast('移除成功')
       }
     }else{
@@ -762,6 +829,60 @@
       })
       lastWait[options.channel] = (wait + options.dur * 0.6) * 1000
     }
+  }
+  function dislike($el, isReturn){
+    const errmsg = '减少推荐内容请求失败';
+    const token = options.accessKey ? '&access_key=' + options.accessKey : '';
+    const reason = {
+      '4': 'UP主',
+      '1': '不感兴趣',
+      '12': '此类内容过多',
+      '13': '推荐过'
+    }
+    const $wp = $el.closest('.dislike');
+    const params = {
+      'goto': $el.data('goto'),
+      'id': $el.data('id'),
+      'mid': $el.data('mid'),
+      'reason_id': $el.data('rsid'),
+      'rid': $el.data('rid'),
+      'tag_id': $el.data('tagid')
+    }
+    let url = `https://app.bilibili.com/x/feed/dislike`;
+    if(isReturn){
+      url += '/cancel'
+    }
+    url += `?build=5000000&goto=${params.goto}&id=${params.id}&mid=${params.mid}&reason_id=${params.reason_id}&rid=${params.rid}&tag_id=${params.tag_id}` + token;
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: url,
+      onload: res => {
+        try {
+          const rep = JSON.parse(res.response);
+          if (rep.code != 0) {
+            toast(errmsg)
+          }
+          if(isReturn){
+            $wp.find('.over').hide().find('.reason').text('');
+            $wp.find('.ready').css({
+              'display': 'flex'
+            });
+            toast('减少推荐成功')
+          }else{
+            $wp.find('.ready').hide();
+            $wp.find('.over').css({
+              'display': 'flex'
+            }).find('.reason').text($el.text());
+            toast('撤销成功')
+          }
+        } catch(e) {
+          toast(errmsg)
+        }
+      },
+      onerror: e => {
+        toast(errmsg)
+      }
+    })
   }
 
   init()
