@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      2.4
+// @version      2.41
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -94,21 +94,21 @@
         .be-switch-label{line-height:20px;font-size:14px;margin-left:3px;vertical-align:middle}
         .be-switch-input{position:absolute;left:0;top:0;margin:0;opacity:0;width:100%;height:100%;z-index:2;display: none}
         .lk{line-height: 20px;text-decoration: underline;}
-        .bili-video-card .bili-video-card__info{position: relative}
-        .bili-video-card .bili-video-card__info .ctrl{position: absolute;bottom: 0;right: 0;background: rgba(0,0,0,.8);width: 100%;height: 0;border-radius: 6px;color: #fff;z-index: 15;display: none}
-        .bili-video-card .bili-video-card__info .ctrl .tb{width: 100%;height: 100%;font-size: 12px;text-align: center;display: flex;flex-direction: column;}
-        .bili-video-card .bili-video-card__info .tb .sp{width: 100%;flex: 2;display: flex;align-items: center;justify-content: center;}
-        .bili-video-card .bili-video-card__info .tb .sp a{flex: 1}
-        .bili-video-card .bili-video-card__info .tb .dislike{flex: 4;}
-        .bili-video-card .bili-video-card__info .tb .dislike .tlt{font-size: 14px}
-        .bili-video-card .bili-video-card__info .tb .dislike a{padding: 5px 0 0 0}
-        .bili-video-card .bili-video-card__info .tb .dislike .ready, .bili-video-card .bili-video-card__info .tb .dislike .over{height: 100%;display: flex;flex-direction: column;justify-content: center;}
-        .bili-video-card .bili-video-card__info .tb .dislike .over{font-size: 14px;display: none}
-        .bili-video-card .bili-video-card__info .tb .dislike .over a{font-size: 12px}
-        .bili-video-card .bvcd-left{position: absolute;top: 0;left: 0;width: 45px;}
-        .bili-video-card .bili-video-card__info--author{display: -webkit-box!important;}
-        .bili-video-card .bili-video-card__info--tit{position: relative;padding: 0 20px 0 45px}
-        .bili-video-card .bili-video-card__info--tit .more{position: absolute;bottom: 0;right: 0;width: 20px;text-align: right;cursor: pointer;fill: var(--graph_icon)}
+        #recommend .bili-video-card .bili-video-card__info{position: relative}
+        #recommend .bili-video-card .bili-video-card__info .ctrl{position: absolute;bottom: 0;right: 0;background: rgba(0,0,0,.8);width: 100%;height: 0;border-radius: 6px;color: #fff;z-index: 15;display: none}
+        #recommend .bili-video-card .bili-video-card__info .ctrl .tb{width: 100%;height: 100%;font-size: 12px;text-align: center;display: flex;flex-direction: column;}
+        #recommend .bili-video-card .bili-video-card__info .tb .sp{width: 100%;flex: 2;display: flex;align-items: center;justify-content: center;}
+        #recommend .bili-video-card .bili-video-card__info .tb .sp a{flex: 1}
+        #recommend .bili-video-card .bili-video-card__info .tb .dislike{flex: 4;}
+        #recommend .bili-video-card .bili-video-card__info .tb .dislike .tlt{font-size: 14px}
+        #recommend .bili-video-card .bili-video-card__info .tb .dislike a{padding: 4% 0 0 0}
+        #recommend .bili-video-card .bili-video-card__info .tb .dislike .ready, #recommend .bili-video-card .bili-video-card__info .tb .dislike .over{height: 100%;display: flex;flex-direction: column;justify-content: center;}
+        #recommend .bili-video-card .bili-video-card__info .tb .dislike .over{font-size: 14px;display: none}
+        #recommend .bili-video-card .bili-video-card__info .tb .dislike .over a{font-size: 12px}
+        #recommend .bili-video-card .bvcd-left{position: absolute;top: 0;left: 0;width: 60px;}
+        #recommend .bili-video-card .bili-video-card__info--author{display: -webkit-box!important;}
+        #recommend .bili-video-card .bili-video-card__info--tit{position: relative;padding: 0 20px 0 50px}
+        #recommend .bili-video-card .bili-video-card__info--tit .more{position: absolute;bottom: 0;right: 0;width: 20px;text-align: right;cursor: pointer;fill: var(--graph_icon)}
         #recommend .area-header{height: 34px;}
         #recommend .roll-btn-wrap{top: 380px;z-index: 15}
       </style>`;
@@ -263,6 +263,9 @@
       return false
     }).on('mouseleave', '.ctrl', function(){
       const $this = $(this);
+      if($this.find('.dlike').length > 0){
+        return
+      }
       $this.hide()
     })
     $('#JShowDanmaku').on('click', function(){
@@ -867,13 +870,15 @@
             $wp.find('.ready').css({
               'display': 'flex'
             });
-            toast('减少推荐成功')
+            $wp.removeClass('dlike');
+            toast('撤销成功')
           }else{
             $wp.find('.ready').hide();
             $wp.find('.over').css({
               'display': 'flex'
             }).find('.reason').text($el.text());
-            toast('撤销成功')
+            $wp.addClass('dlike');
+            toast('减少推荐成功')
           }
         } catch(e) {
           toast(errmsg)
