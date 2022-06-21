@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      2.2
+// @version      2.3
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -93,7 +93,10 @@
         .be-switch-cursor{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:12px;background:#fff;transition:left .2s ease}
         .be-switch-label{line-height:20px;font-size:14px;margin-left:3px;vertical-align:middle}
         .be-switch-input{position:absolute;left:0;top:0;margin:0;opacity:0;width:100%;height:100%;z-index:2;display: none}
+        .lk{line-height: 20px;text-decoration: underline;}
         .bili-video-card .bili-video-card__info--author{display: -webkit-box!important;}
+        .bili-video-card .bvcd-left{width: 55px;}
+        .bili-video-card .bili-video-card__info--tit{padding-right: 0}
         #recommend .area-header{height: 34px;}
         #recommend .roll-btn-wrap{top: 380px;z-index: 15}
       </style>`;
@@ -110,6 +113,7 @@
               <a href="javascript:;" class="title"><span>Tampermonkey插件推荐</span></a>
             </div>
             <div class="right">
+              <a href="https://github.com/nilaoda/BBDown" target="https://github.com/nilaoda/BBDown" class="lk">BBDown说明</a>
               <div class="be-switch-container setting-privacy-switcher${options.isShowRec ? ' is-checked': ''}" id="JShowRec">
                 <input type="checkbox" class="be-switch-input" value="${options.isShowRec}">
                 <div class="be-switch"><i class="be-switch-cursor"></i></div>
@@ -434,8 +438,8 @@
     }
     list = unique(data);
     options.refresh += 1;
-    updateRecommend(list);
     !$('.bili-footer').is('hidden') && $('.bili-footer').hide()
+    updateRecommend(list);
   }
   function new2old(data){
     return data.map((item) => {
@@ -535,7 +539,7 @@
               </div>
             </a>
             <div class="bili-video-card__info __scale-disable">
-              <div>
+              <div class="bvcd-left">
                 <a href="https://space.bilibili.com/${data.mid}" target="https://space.bilibili.com/${data.mid}">
                   <div class="v-avatar bili-video-card__avatar">
                     <picture class="v-img v-avatar__face">
@@ -547,9 +551,9 @@
                 <a href="javascript:;" class="BBDown" data-id="${data.goto == 'av' ? 'av' + data.param : data.uri}">BBDown下载</a>
               </div>
               <div class="bili-video-card__info--right">
-                <a href="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" target="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}">
-                  <h3 class="bili-video-card__info--tit" title="${data.title}">${data.title}</h3>
-                </a>
+                <h3 class="bili-video-card__info--tit" title="${data.title}">
+                  <a href="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" target="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}">${data.title}</a>
+                </h3>
                 <p class="bili-video-card__info--bottom" style="${(data.rcmd_reason && data.rcmd_reason.content == '已关注') ? 'color: #f00' : data.badge ? 'color: #ff8f00' : ''}">
                   <a class="bili-video-card__info--owner" href="https://space.bilibili.com/${data.mid}" target="https://space.bilibili.com/${data.mid}" ${data.name ? 'title="' + data.name + '"' : ''}>
                     <svg class="bili-video-card__info--owner__up">
@@ -568,7 +572,10 @@
       $list.append(html);
       $('.load-state').remove();
       setTimeout(() => {
-        isLoading = false
+        isLoading = false;
+        if($(document).height() - $(window).height() <= 0){
+          getRecommendList()
+        }
       }, 300)
     }else{
       $list.html(html)
