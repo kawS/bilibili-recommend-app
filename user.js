@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      2.41
+// @version      2.42
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -64,13 +64,18 @@
     getRecommendList()
   }
   function setSize(width, setRow){
-    let row = setRow ? 6 : 4;
-    if(width < 1684){
+    let row = setRow ? 5 : 4;
+    if(width <= 1100){
+      options.sizes = 4 * row
+    }
+    if(width > 1100 && width <= 1700){
       options.sizes = 5 * row
-    }else if(width >= 2183){
-      options.sizes = 7 * row
-    }else{
+    }
+    if(width > 1700 && width < 2200){
       options.sizes = 6 * row
+    }
+    if(width >= 2200){
+      options.sizes = 7 * row
     }
   }
   function initStyle(){
@@ -105,7 +110,7 @@
         #recommend .bili-video-card .bili-video-card__info .tb .dislike .ready, #recommend .bili-video-card .bili-video-card__info .tb .dislike .over{height: 100%;display: flex;flex-direction: column;justify-content: center;}
         #recommend .bili-video-card .bili-video-card__info .tb .dislike .over{font-size: 14px;display: none}
         #recommend .bili-video-card .bili-video-card__info .tb .dislike .over a{font-size: 12px}
-        #recommend .bili-video-card .bvcd-left{position: absolute;top: 0;left: 0;width: 60px;}
+        #recommend .bili-video-card .bvcd-left{position: absolute;top: 0;left: 0;width: 50px;z-index: 10}
         #recommend .bili-video-card .bili-video-card__info--author{display: -webkit-box!important;}
         #recommend .bili-video-card .bili-video-card__info--tit{position: relative;padding: 0 20px 0 50px}
         #recommend .bili-video-card .bili-video-card__info--tit .more{position: absolute;bottom: 0;right: 0;width: 20px;text-align: right;cursor: pointer;fill: var(--graph_icon)}
@@ -187,6 +192,8 @@
       let wts = css.match(reg);
       $svg.css('transform', `rotate(${parseFloat(wts[3]) + 360}deg)`);
       options.clientWidth = $(window).width();
+      options.oneItemHeight = $('.bili-grid').eq(0).find('.bili-video-card').height();
+      options.listHeight = $('#recommend-list').height();
       setSize(options.clientWidth);
       getRecommendList();
       return false
@@ -238,14 +245,20 @@
     // })
     .on('click', '#Jwatch', function(){
       const $this = $(this);
+      if(isWait) return;
+      isWait = true;
       watchlater($this);
       return false
     }).on('click', '.dislike .dl', function(){
       const $this = $(this);
+      if(isWait) return;
+      isWait = true;
       dislike($this);
       return false
     }).on('click', '#Jreturn', function(){
       const $this = $(this);
+      if(isWait) return;
+      isWait = true;
       dislike($this, true);
       return false
     }).on('click', '#Jbbdown', function(){
@@ -455,14 +468,22 @@
     let result = null;
     let data = null;
     let list = null;
-    let isLar = options.sizes - 10 > 10;
     if(options.isShowRec){
-      result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url1, 'new')]);
-    }else{
-      if(isLar){
-        result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url1, 'new'), getRecommend(url2)])
+      // 4-24 5-30 6-36 7-42
+      // result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url1, 'new')]);
+      if(options.sizes > 36){
+        result = Promise.all([getRecommend(url2), getRecommend(url2), getRecommend(url2), getRecommend(url2), getRecommend(url2), getRecommend(url2)]);
       }else{
-        result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2)])
+        result = Promise.all([getRecommend(url2), getRecommend(url2), getRecommend(url2), getRecommend(url2), getRecommend(url2)]);
+      }
+    }else{
+      // 4-16 5-20 6-24 7-28
+      if(options.sizes > 20){
+        // result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url1, 'new'), getRecommend(url2)])
+        result = Promise.all([getRecommend(url2), getRecommend(url2), getRecommend(url2), getRecommend(url2)])
+      }else{
+        // result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2)])
+        result = Promise.all([getRecommend(url2), getRecommend(url2), getRecommend(url2)])
       }
     }
     try {
@@ -470,17 +491,17 @@
     } catch (error) {
       toast(error)
     }
-    if(options.isShowRec || isLar){
-      data[0] = new2old(data[0]);
-      data[2] = new2old(data[2]);
-      options.isShowRec && (data[4] = new2old(data[4]))
-    }else{
-      data[0] = new2old(data[0])
-    }
+    // if(options.isShowRec){
+    //   data[0] = new2old(data[0]);
+    //   data[2] = new2old(data[2]);
+    //   options.isShowRec && (data[4] = new2old(data[4]))
+    // }else{
+    //   data[0] = new2old(data[0])
+    // }
     list = unique(data);
     options.refresh += 1;
     !$('.bili-footer').is('hidden') && $('.bili-footer').hide();
-    updateRecommend(list);
+    updateRecommend(list)
   }
   function new2old(data){
     return data.map((item) => {
@@ -510,7 +531,7 @@
     })
   }
   function unique(data){
-    const arr = data[0].concat(data[1], data[2] || [], data[3] || [], data[4] || []);
+    const arr = data[0].concat(data[1], data[2] || [], data[3] || [], data[4] || [], data[5] || []);
     let result = [];
     let cidList = {};
     for(let item of arr){
@@ -580,8 +601,8 @@
               </div>
             </a>
             <div class="bili-video-card__info __scale-disable">
-              <div class="bvcd-left">
-                <a href="https://space.bilibili.com/${data.mid}" target="https://space.bilibili.com/${data.mid}">
+              <div class="bvcd-left" ${data.name ? 'title="' + data.name + '"' : ''}>
+                <a href="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : '928123')}" target="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : '928123')}">
                   <div class="v-avatar bili-video-card__avatar">
                     <picture class="v-img v-avatar__face">
                       <source srcset="${data.face.replace('http:', 'https:')}@72w_72h.webp" type="image/webp"/>
@@ -598,11 +619,11 @@
                   </div>
                 </h3>
                 <p class="bili-video-card__info--bottom" style="${(data.rcmd_reason && data.rcmd_reason.content == '已关注') ? 'color: #f00' : data.badge ? 'color: #ff8f00' : ''}">
-                  <a class="bili-video-card__info--owner" href="https://space.bilibili.com/${data.mid}" target="https://space.bilibili.com/${data.mid}" ${data.name ? 'title="' + data.name + '"' : ''}>
+                  <a class="bili-video-card__info--owner" href="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : '928123')}" target="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : '928123')}" ${data.name ? 'title="' + data.name + '"' : 'style="width: 100%"'}>
                     <svg class="bili-video-card__info--owner__up">
                       <use xlink:href="#widget-up"></use>
                     </svg>
-                    <span class="bili-video-card__info--author">${data.name || data.badge + ' - ' + data.desc}</span>
+                    <span class="bili-video-card__info--author"${data.name ? '' : ' style="width: 90%"'}>${data.name || data.badge + ' - ' + data.desc}</span>
                     <span class="bili-video-card__info--date"${data.goto == 'av' ? '' : ' style="display: none"'}>${returnDateTxt(data.ctime)}</span>
                   </a>
                 </p>
@@ -613,7 +634,7 @@
                     <a href="javascript:;" data-aid="${data.param}" id="Jwatch">稍后再看</a>
                     <a href="javascript:;" data-id="${data.goto == 'av' ? 'av' + data.param : data.uri}" id="Jbbdown">BBDown下载</a>
                   </div>
-                  <div class="dislike"${options.accessKey ? '' : data.goto == 'av' ? '' : ' style="display: none"'}>
+                  <div class="dislike"${options.accessKey ? (data.goto == 'av' ? '' : ' style="display: none"') : ''}>
                     <div class="ready">
                       <div class="tlt">-- 减少相似内容推荐 --</div>
                       <a href="javascript:;" class="dl" data-rsid="4" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">UP主</a>
@@ -700,6 +721,7 @@
     } catch (error) {
       toast(error)
     }
+    isWait = false;
     if(data.code == 0){
       // if(type == 'add'){
       //   $el.addClass('del').find('span').text('移除');
@@ -878,13 +900,18 @@
               'display': 'flex'
             }).find('.reason').text($el.text());
             $wp.addClass('dlike');
+            if($wp.closest('.ctrl').is(':hidden')){
+              $wp.closest('.ctrl').show()
+            }
             toast('减少推荐成功')
           }
         } catch(e) {
           toast(errmsg)
         }
+        isWait = false;
       },
       onerror: e => {
+        isWait = false;
         toast(errmsg)
       }
     })
