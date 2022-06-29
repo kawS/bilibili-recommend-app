@@ -580,7 +580,6 @@
                   <div class="v-inline-danmaku"></div>
                 </div>
                 <div class="bili-video-card__mask">
-                  <div class="taglike" style="background:${data.badge ? ' #ff8f00' : data.tname ? ' #fff' : ' #ff005d'};color:${data.badge ? ' #fff' : data.tname ? ' #333' : ' #fff'};display: none">${data.badge || data.tname || '官方新版推荐'}</div>
                   ${data.badge ? `<div class="taglike" style="background: #ff8f00;color: #fff;">${data.badge}</div>` : data.rcmd_reason && data.rcmd_reason.content == '已关注' ? `<div class="taglike" style="background: #ff8f00;color: #fff;">已关注</div>` : ''}
                   <div class="bili-video-card__stats">
                     <div class="bili-video-card__stats--left">
@@ -602,7 +601,7 @@
             </a>
             <div class="bili-video-card__info __scale-disable">
               <div class="bvcd-left" ${data.name ? 'title="' + data.name + '"' : ''}>
-                <a href="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : '928123')}" target="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : '928123')}">
+                <a href="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : '928123')}" target="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : data.badge == '国创' ? '98627270' : '928123')}">
                   <div class="v-avatar bili-video-card__avatar">
                     <picture class="v-img v-avatar__face">
                       <source srcset="${data.face.replace('http:', 'https:')}@72w_72h.webp" type="image/webp"/>
@@ -619,7 +618,7 @@
                   </div>
                 </h3>
                 <p class="bili-video-card__info--bottom" style="${(data.rcmd_reason && data.rcmd_reason.content == '已关注') ? 'color: #f00' : data.badge ? 'color: #ff8f00' : ''}">
-                  <a class="bili-video-card__info--owner" href="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : '928123')}" target="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : '928123')}" ${data.name ? 'title="' + data.name + '"' : 'style="width: 100%"'}>
+                  <a class="bili-video-card__info--owner" href="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : data.badge == '国创' ? '98627270' : '928123')}" target="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : data.badge == '国创' ? '98627270' : '928123')}" ${data.name ? 'title="' + data.name + '"' : 'style="width: 100%"'}>
                     <svg class="bili-video-card__info--owner__up">
                       <use xlink:href="#widget-up"></use>
                     </svg>
@@ -809,7 +808,7 @@
     const bar = percent * 100;
     if($pvbox.length > 0){
       $pvbox.css({
-        'background': `url(https:${imgUrl}) -${x}px -${y}px no-repeat`
+        'background': `url(https:${imgUrl}) ${x < 0 ? 0 : -x}px ${y < 0 ? 0 : -y}px no-repeat`
       })
       $pvbox.next().css({
         'width': `${bat}%`
@@ -817,7 +816,7 @@
       return
     }
     $tarDom.html(`
-      <div class="pv-box" style="background: url(https:${imgUrl}) -${x}px -${y}px no-repeat;background-size: ${sizeX}px ${sizeY}px;height: 100%;pointer-events:none"></div>
+      <div class="pv-box" style="background: url(https:${imgUrl}) ${x < 0 ? 0 : -x}px ${y < 0 ? 0 : -y}px no-repeat;background-size: ${sizeX}px ${sizeY}px;height: 100%;pointer-events:none"></div>
       <div class="pv-bar" style="position: absolute;left: 0;bottom: 0;background: #fb7299;width: ${bar}%;height: 2px;z-index: 2"></div>
     `)
   }
