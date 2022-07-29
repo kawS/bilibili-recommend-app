@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      2.5
+// @version      2.5.1
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -39,7 +39,6 @@
   let $list = null;
   let isWait = false;
   let isLoading = true;
-  let isNewTestWaitMenu = true;
   let options = {
     clientWidth: $(window).width(),
     sizes: null,
