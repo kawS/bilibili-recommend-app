@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      2.42
+// @version      2.5
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -34,10 +34,12 @@
 (function() {
   'use strict';
   
-  const itemHeight = $('.bili-grid').eq(0).find('.bili-video-card').height();
+  const isNewTest = $('#i_cecream').find('.bili-feed4').length > 0 ? true : false;
+  const itemHeight = isNewTest ? $('.first-paint').find('.bili-video-card').height() : $('.bili-grid').eq(0).find('.bili-video-card').height();
   let $list = null;
   let isWait = false;
   let isLoading = true;
+  let isNewTestWaitMenu = true;
   let options = {
     clientWidth: $(window).width(),
     sizes: null,
@@ -61,7 +63,7 @@
     intiHtml();
     initEvent();
     checkAccessKey();
-    getRecommendList()
+    getRecommendList();
   }
   function setSize(width, setRow){
     let row = setRow ? 5 : 4;
@@ -76,6 +78,14 @@
     }
     if(width >= 2200){
       options.sizes = 7 * row
+    }
+    if(isNewTest){
+      if(width <=1400){
+        options.sizes = 4 * row
+      }else{
+        options.sizes = 5 * row
+      }
+      
     }
   }
   function initStyle(){
@@ -116,14 +126,18 @@
         #recommend .bili-video-card .bili-video-card__info--tit .more{position: absolute;bottom: 0;right: 0;width: 20px;text-align: right;cursor: pointer;fill: var(--graph_icon)}
         #recommend .area-header{height: 34px;}
         #recommend .roll-btn-wrap{top: 380px;z-index: 15}
+        #recommend.recommended-container .first-paint>*:nth-of-type(1n + 8){margin-top: 0!important}
+        #recommend.recommended-container .first-paint>*:nth-of-type(1n + 6){margin-top: 0!important}
+        #recommend.recommended-container{position: relative}
+        ${isNewTest && options.isShowRec ? '.header-channel{display: none}': ''}
       </style>`;
     $('head').append(style)
   }
   function intiHtml(){
-    const $position = $('.bili-grid').eq(1);
+    const $position = isNewTest ? $('.feed2').find('section:eq(0)') : $('.bili-grid').eq(1);
     const $fullpage = $('#i_cecream');
     const html = `
-      <section class="bili-grid" data-area='Tampermonkey插件推荐' id="recommend">
+      <section class="${isNewTest ? 'recommended-container' : 'bili-grid'}" data-area='Tampermonkey插件推荐' id="recommend">
         <div class="eva-extension-area">
           <div class="area-header">
             <div class="left">
@@ -150,7 +164,7 @@
               </button>
             </div>
           </div>
-          <div class="eva-extension-body" id="recommend-list"></div>
+          <div class="${isNewTest ? 'first-paint' : 'eva-extension-body'}" id="recommend-list"></div>
         </div>
         <div class="roll-btn-wrap"${options.isShowRec ? ' style="display: none"' : ''}>
           <button class="primary-btn roll-btn" id="JrefreshRight">
@@ -161,7 +175,11 @@
       </section>`;
     if($fullpage.length <= 0) return;
     if(options.isShowRec){
-      $fullpage.find('.bili-layout').hide().after(`<main class="bili-layout" id="scrollwrap">${html}</main>`);
+      if(isNewTest){
+        $fullpage.find('.bili-feed4-layout').hide().after(`<main class="bili-feed4-layout" id="scrollwrap">${html}</main>`);
+      }else{
+        $fullpage.find('.bili-layout').hide().after(`<main class="bili-layout" id="scrollwrap">${html}</main>`)
+      }
     }else{
       $position.after(html);
     }
@@ -228,21 +246,6 @@
         }
       }
     })
-    // .on('mouseenter', '.bili-watch-later', function(e){
-    //   e.stopPropagation();
-    //   const $this = $(this);
-    //   $this.find('span').show()
-    // })
-    // .on('mouseleave', '.bili-watch-later', function(e){
-    //   e.stopPropagation();
-    //   const $this = $(this);
-    //   $this.find('span').hide()
-    // })
-    // .on('click', '.bili-watch-later', function(){
-    //   const $this = $(this);
-    //   watchlater($this);
-    //   return false
-    // })
     .on('click', '#Jwatch', function(){
       const $this = $(this);
       if(isWait) return;
@@ -315,6 +318,17 @@
     if(options.isShowRec){
       $(window).on('scroll', function(){
         const $this = $(this);
+        if(isNewTest && options.isShowRec){
+          if($this.scrollTop() > $('.bili-header').height()){
+            if($('.header-channel').is(':hidden')){
+              $('.header-channel').fadeIn()
+            }
+          }else{
+            if(!$('.header-channel').is(':hidden')){
+              $('.header-channel').hide()
+            }
+          }
+        }
         if(($this.scrollTop() + options.oneItemHeight * 3) > ($(document).height() - $(window).height())){
           if(isLoading) return;
           isLoading = true;
@@ -450,13 +464,12 @@
     })
   }
   async function getRecommendList(){
-    const $listwp = $('#recommend-list');
     if(options.refresh == 1){
-      $listwp.height(options.listHeight)
+      !isNewTest && $list.height(options.listHeight)
       showLoading(options.listHeight);
     }else{
-      if($listwp.attr('style')){
-        $listwp.removeAttr('style')
+      if($list.attr('style')){
+        $list.removeAttr('style')
       }
       if(!options.isShowRec){
         showLoading(options.listHeight);
@@ -501,7 +514,7 @@
     list = unique(data);
     options.refresh += 1;
     !$('.bili-footer').is('hidden') && $('.bili-footer').hide();
-    updateRecommend(list)
+    updateRecommend(list);
   }
   function new2old(data){
     return data.map((item) => {
