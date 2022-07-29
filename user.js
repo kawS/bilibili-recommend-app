@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      2.5.1
+// @version      3.1
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -180,6 +180,9 @@
         $fullpage.find('.bili-layout').hide().after(`<main class="bili-layout" id="scrollwrap">${html}</main>`)
       }
     }else{
+      if(isNewTest){
+        $position.find('.first-paint').children().not('.recommended-swipe, .bili-video-card').remove()
+      }
       $position.after(html);
     }
     $list = $('#recommend-list');
@@ -201,6 +204,9 @@
       return false
     })
     $('#Jrefresh, #JrefreshRight').on('click', function(){
+      if(isNewTest){
+        $('.feed2').find('section:eq(0)').find('.first-paint').children().not('.recommended-swipe, .bili-video-card').remove()
+      }
       if($('.load-state').length > 0) return;
       const $this = $(this);
       const reg = /(rotate\([\-\+]?((\d+)(deg))\))/i;
