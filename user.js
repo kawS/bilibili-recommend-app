@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      3.2
+// @version      4.1
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -125,15 +125,22 @@
         #recommend .bili-video-card .bili-video-card__info--tit .more{position: absolute;bottom: 0;right: 0;width: 20px;text-align: right;cursor: pointer;fill: var(--graph_icon)}
         #recommend .area-header{height: 34px;}
         #recommend .roll-btn-wrap{top: 380px;z-index: 15}
+        #recommend .first-paint{display: grid;position: relative;width: 100%;grid-gap: 20px;padding-bottom: 40px;grid-column: span 5;grid-template-columns: repeat(5,1fr);}
+        @media (max-width: 1399.9px){
+          #recommend .first-paint{grid-column: span 4;grid-template-columns: repeat(4,1fr);}
+        }
         #recommend.recommended-container .first-paint>*:nth-of-type(1n + 8){margin-top: 0!important}
         #recommend.recommended-container .first-paint>*:nth-of-type(1n + 6){margin-top: 0!important}
         #recommend.recommended-container{position: relative}
+        @media (max-width: 1099.9px){
+          #recommend .roll-btn-wrap{left: initial;right: -10px;transform: initial;opacity: .8;
+        }
         ${isNewTest && options.isShowRec ? '.header-channel{display: none}': ''}
       </style>`;
     $('head').append(style)
   }
   function intiHtml(){
-    const $position = isNewTest ? $('.feed2').find('section:eq(0)') : $('.bili-grid').eq(1);
+    const $position = isNewTest ? $('.feed2').find('.recommended-container') : $('.bili-grid').eq(1);
     const $fullpage = $('#i_cecream');
     const html = `
       <section class="${isNewTest ? 'recommended-container' : 'bili-grid'}" data-area='Tampermonkey插件推荐' id="recommend">
