@@ -135,7 +135,6 @@
         @media (max-width: 1099.9px){
           #recommend .roll-btn-wrap{left: initial;right: -10px;transform: initial;opacity: .8;
         }
-        ${isNewTest && options.isShowRec ? '.header-channel{display: none}': ''}
       </style>`;
     $('head').append(style)
   }
@@ -190,6 +189,14 @@
       $position.after(html);
     }
     $list = $('#recommend-list');
+    let timer = setInterval(() => {
+      let $hd = $('.header-channel')
+      if(!$hd.is(':hidden')){
+        clearInterval(timer);
+        $hd.hide();
+        return
+      }
+    }, 500)
   }
   function initEvent(){
     $('#JaccessKey').on('click', function(){
