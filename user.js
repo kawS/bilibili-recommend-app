@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      4.1
+// @version      4.3
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -35,7 +35,7 @@
   'use strict';
   
   const isNewTest = $('#i_cecream').find('.bili-feed4').length > 0 ? true : false;
-  const itemHeight = isNewTest ? $('.first-paint').find('.bili-video-card').height() : $('.bili-grid').eq(0).find('.bili-video-card').height();
+  const itemHeight = isNewTest ? $('.recommended-swipe').next('.recommended-card').height() : $('.bili-grid').eq(0).find('.bili-video-card').height();
   let $list = null;
   let isWait = false;
   let isLoading = true;
@@ -108,6 +108,7 @@
         .be-switch-label{line-height:20px;font-size:14px;margin-left:3px;vertical-align:middle}
         .be-switch-input{position:absolute;left:0;top:0;margin:0;opacity:0;width:100%;height:100%;z-index:2;display: none}
         .lk{line-height: 20px;text-decoration: underline;}
+        #recommend{margin-bottom: 40px;border-bottom: 1px solid var(--line_regular)}
         #recommend .bili-video-card .bili-video-card__info{position: relative}
         #recommend .bili-video-card .bili-video-card__info .ctrl{position: absolute;bottom: 0;right: 0;background: rgba(0,0,0,.8);width: 100%;height: 0;border-radius: 6px;color: #fff;z-index: 15;display: none}
         #recommend .bili-video-card .bili-video-card__info .ctrl .tb{width: 100%;height: 100%;font-size: 12px;text-align: center;display: flex;flex-direction: column;}
@@ -223,7 +224,7 @@
       let wts = css.match(reg);
       $svg.css('transform', `rotate(${parseFloat(wts[3]) + 360}deg)`);
       options.clientWidth = $(window).width();
-      options.oneItemHeight = $('.bili-grid').eq(0).find('.bili-video-card').height();
+      options.oneItemHeight = isNewTest ? $('.recommended-swipe').next('.recommended-card').height() : $('.bili-grid').eq(0).find;
       options.listHeight = $('#recommend-list').height();
       setSize(options.clientWidth);
       getRecommendList();
