@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      4.6
+// @version      4.7
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
