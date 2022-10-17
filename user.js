@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      4.7
+// @version      4.8
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -182,28 +182,15 @@
     if($fullpage.length <= 0) return;
     if(options.isShowRec){
       if(isNewTest){
-        $('.header-channel').remove()
-        $fullpage.find('.bili-feed4-layout').after(`<main class="bili-feed4-layout" id="scrollwrap">${html}</main>`)
-        $('#scrollwrap').prev().hide()
+        $fullpage.find('.feed2').before(`<div id="scrollwrap">${html}</div>`)
       }else{
         $fullpage.find('.bili-header').after(`<main class="bili-layout" id="scrollwrap">${html}</main>`);
-        $('#scrollwrap').next().hide()
       }
-      
+      $('#scrollwrap').next().hide()
     }else{
       $position.after(html);
     }
     $list = $('#recommend-list');
-    // if(isNewTest){
-    //   let timer = setInterval(() => {
-    //     let $hd = $('.header-channel')
-    //     if(!$hd.is(':hidden')){
-    //       clearInterval(timer);
-    //       $hd.hide();
-    //       return
-    //     }
-    //   }, 500)
-    // }
   }
   function initEvent(){
     $('#JaccessKey').on('click', function(){
@@ -265,8 +252,7 @@
           setPosition($this, e.clientX - rect.left, $this[0].pvData)
         }
       }
-    })
-    .on('click', '#Jwatch', function(){
+    }).on('click', '#Jwatch', function(){
       const $this = $(this);
       if(isWait) return;
       isWait = true;
