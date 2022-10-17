@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      4.4
+// @version      4.6
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -108,7 +108,7 @@
         .be-switch-label{line-height:20px;font-size:14px;margin-left:3px;vertical-align:middle}
         .be-switch-input{position:absolute;left:0;top:0;margin:0;opacity:0;width:100%;height:100%;z-index:2;display: none}
         .lk{line-height: 20px;text-decoration: underline;}
-        #recommend{margin-bottom: 40px;border-bottom: 1px solid var(--line_regular)}
+        #recommend{margin-bottom: 40px;}
         #recommend .bili-video-card .bili-video-card__info{position: relative}
         #recommend .bili-video-card .bili-video-card__info .ctrl{position: absolute;bottom: 0;right: 0;background: rgba(0,0,0,.8);width: 100%;height: 0;border-radius: 6px;color: #fff;z-index: 15;display: none}
         #recommend .bili-video-card .bili-video-card__info .ctrl .tb{width: 100%;height: 100%;font-size: 12px;text-align: center;display: flex;flex-direction: column;}
@@ -126,13 +126,13 @@
         #recommend .bili-video-card .bili-video-card__info--tit .more{position: absolute;bottom: 0;right: 0;width: 20px;text-align: right;cursor: pointer;fill: var(--graph_icon)}
         #recommend .area-header{height: 34px;}
         #recommend .roll-btn-wrap{top: 380px;z-index: 15}
-        #recommend .first-paint{display: grid;position: relative;width: 100%;grid-gap: 20px;padding-bottom: 40px;grid-column: span 5;grid-template-columns: repeat(5,1fr);}
+        #recommend .first-paint{display: grid;position: relative;width: 100%;grid-gap: 20px;grid-column: span 5;grid-template-columns: repeat(5,1fr);}
         @media (max-width: 1399.9px){
           #recommend .first-paint{grid-column: span 4;grid-template-columns: repeat(4,1fr);}
         }
         #recommend.recommended-container .first-paint>*:nth-of-type(1n + 8){margin-top: 0!important}
         #recommend.recommended-container .first-paint>*:nth-of-type(1n + 6){margin-top: 0!important}
-        #recommend.recommended-container{position: relative}
+        #recommend.recommended-container{position: relative;${options.isShowRec ? '' : 'padding-top: 30px;border-top: 4px solid var(--line_light)'}}
         @media (max-width: 1099.9px){
           #recommend .roll-btn-wrap{left: initial;right: -10px;transform: initial;opacity: .8;
         }
@@ -182,23 +182,28 @@
     if($fullpage.length <= 0) return;
     if(options.isShowRec){
       if(isNewTest){
-        $fullpage.find('.bili-feed4-layout').hide().after(`<main class="bili-feed4-layout" id="scrollwrap">${html}</main>`)
+        $('.header-channel').remove()
+        $fullpage.find('.bili-feed4-layout').after(`<main class="bili-feed4-layout" id="scrollwrap">${html}</main>`)
+        $('#scrollwrap').prev().hide()
       }else{
-        $fullpage.find('.bili-header').after(`<main class="bili-layout" id="scrollwrap">${html}</main>`)
+        $fullpage.find('.bili-header').after(`<main class="bili-layout" id="scrollwrap">${html}</main>`);
         $('#scrollwrap').next().hide()
       }
+      
     }else{
       $position.after(html);
     }
     $list = $('#recommend-list');
-    // let timer = setInterval(() => {
-    //   let $hd = $('.header-channel')
-    //   if(!$hd.is(':hidden')){
-    //     clearInterval(timer);
-    //     $hd.hide();
-    //     return
-    //   }
-    // }, 500)
+    // if(isNewTest){
+    //   let timer = setInterval(() => {
+    //     let $hd = $('.header-channel')
+    //     if(!$hd.is(':hidden')){
+    //       clearInterval(timer);
+    //       $hd.hide();
+    //       return
+    //     }
+    //   }, 500)
+    // }
   }
   function initEvent(){
     $('#JaccessKey').on('click', function(){
