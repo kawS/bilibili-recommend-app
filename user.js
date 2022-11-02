@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      4.8
+// @version      4.9
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -56,6 +56,10 @@
       window.stop();
       return window.top.postMessage(location.href, 'https://www.bilibili.com')
     }
+    window.localStorage['bilibili_player_force_DolbyAtmos&8K&HDR'] = 1;
+    Object.defineProperty(navigator, 'userAgent', {
+        value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 12_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15'
+    });
     if(location.pathname != '/') return;
     setSize(options.clientWidth, options.isShowRec);
     initStyle();
