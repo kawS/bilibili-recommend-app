@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      4.9
+// @version      5.0
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -487,32 +487,61 @@
     }
     const token = options.accessKey ? '&access_key=' + options.accessKey : '';
     const url1 = `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`;
-    const url2 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=' + ((Date.now() / 1000).toFixed(0)) + token;
+    const url2 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=';
     let result = null;
-    let data = null;
+    let data = [];
     let list = null;
     if(options.isShowRec){
       // 4-24 5-30 6-36 7-42
-      // result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url1, 'new')]);
       if(options.sizes > 36){
-        result = Promise.all([getRecommend(url2), getRecommend(url2), getRecommend(url2), getRecommend(url2), getRecommend(url2), getRecommend(url2)]);
+        for(let i=0;i<6;i++){
+          let uri = url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
+          console.log(uri);
+          await getRecommend(uri).then(d => {
+            data.push(d)
+          }).catch(err => {
+            i--;
+            console.log(err)
+          })
+        }
       }else{
-        result = Promise.all([getRecommend(url2), getRecommend(url2), getRecommend(url2), getRecommend(url2), getRecommend(url2)]);
+        for(let i=0;i<5;i++){
+          let uri = url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
+          console.log(uri);
+          await getRecommend(uri).then(d => {
+            data.push(d)
+          }).catch(err => {
+            i--;
+            console.log(err)
+          })
+        }
       }
     }else{
       // 4-16 5-20 6-24 7-28
       if(options.sizes > 20){
-        // result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2), getRecommend(url1, 'new'), getRecommend(url2)])
-        result = Promise.all([getRecommend(url2), getRecommend(url2), getRecommend(url2), getRecommend(url2)])
+        for(let i=0;i<4;i++){
+          let uri = url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
+          console.log(uri);
+          await getRecommend(uri).then(d => {
+            data.push(d)
+          }).catch(err => {
+            i--;
+            console.log(err)
+          })
+        }
       }else{
         // result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2)])
-        result = Promise.all([getRecommend(url2), getRecommend(url2), getRecommend(url2)])
+        for(let i=0;i<3;i++){
+          let uri = url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
+          console.log(uri);
+          await getRecommend(uri).then(d => {
+            data.push(d)
+          }).catch(err => {
+            i--;
+            console.log(err)
+          })
+        }
       }
-    }
-    try {
-      data = await result;
-    } catch (error) {
-      toast(error)
     }
     // if(options.isShowRec){
     //   data[0] = new2old(data[0]);
@@ -521,6 +550,8 @@
     // }else{
     //   data[0] = new2old(data[0])
     // }
+    console.log(data);
+    if(data.length < 0) return;
     list = unique(data);
     options.refresh += 1;
     !$('.bili-footer').is('hidden') && $('.bili-footer').hide();
