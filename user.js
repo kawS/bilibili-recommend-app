@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      5.1
+// @version      5.2
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -26,7 +26,7 @@
 // @grant        GM_setClipboard
 // @run-at       document-idle
 
-// @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js
+// @require      https://cdn.jsdelivr.net/npm/jquery@3.6.1/dist/jquery.min.js
 
 // @license      MIT
 // ==/UserScript==
@@ -503,7 +503,7 @@
       if(options.sizes > 36){
         for(let i=0;i<6;i++){
           let uri = url1; // url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
-          console.log(uri);
+          // console.log(uri);
           await getRecommend(uri, 'new').then(d => {
             data.push(d.config ? getDataV2(d.items) : d)
           }).catch(err => {
@@ -514,7 +514,7 @@
       }else{
         for(let i=0;i<5;i++){
           let uri = url1; // url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
-          console.log(uri);
+          // console.log(uri);
           await getRecommend(uri, 'new').then(d => {
             data.push(d.config ? getDataV2(d.items) : d)
           }).catch(err => {
@@ -528,7 +528,7 @@
       if(options.sizes > 20){
         for(let i=0;i<4;i++){
           let uri = url1; // url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
-          console.log(uri);
+          // console.log(uri);
           await getRecommend(uri, 'new').then(d => {
             data.push(d.config ? getDataV2(d.items) : d)
           }).catch(err => {
@@ -540,7 +540,7 @@
         // result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2)])
         for(let i=0;i<3;i++){
           let uri = url1; // url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
-          console.log(uri);
+          // console.log(uri);
           await getRecommend(uri, 'new').then(d => {
             data.push(d.config ? getDataV2(d.items) : d)
           }).catch(err => {
@@ -557,7 +557,7 @@
     // }else{
     //   data[0] = new2old(data[0])
     // }
-    console.log(data);
+    // console.log(data);
     for(let i=0;i<data.length;i++){
       data[i] = new2old(data[i])
     }
