@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      5.2
+// @version      5.3
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -165,9 +165,9 @@
                 <div class="be-switch"><i class="be-switch-cursor"></i></div>
                 <div class="be-switch-label"><span>是否预览弹幕</span></div>
               </div>
-              <!--<button class="primary-btn roll-btn" id="JaccessKey"}>
+              <button class="primary-btn roll-btn" id="JaccessKey"}>
                 <span>${options.accessKey ? '删除授权' : '获取授权'}</span>
-              </button>-->
+              </button>
               <button class="primary-btn roll-btn"${options.isShowRec ? ' style="display: none"' : ''} id="Jrefresh">
                 <svg style="transform: rotate(0deg);"><use xlink:href="#widget-roll"></use></svg>
                 <span>换一换</span>
@@ -378,8 +378,7 @@
     let res = null;
     let data = null;
     try {
-      // res = await fetch('https://passport.bilibili.com/login/app/third?appkey=27eb53fc9058f8c3&api=https%3A%2F%2Fwww.mcbbs.net%2Ftemplate%2Fmcbbs%2Fimage%2Fspecial_photo_bg.png&sign=04224646d1fea004e79606d3b038c84a', {
-      res = await fetch('https://passport.bilibili.com/login/app/third?appkey=27eb53fc9058f8c3&api=https%3A%2F%2Fwww.mcbbs.net%2Ftemplate%2Fmcbbs%2Fimage%2Fspecial_photo_bg.png&sign=c2ed53a74eeefe3cf99fbd01d8c9c375', {
+      res = await fetch('https://passport.bilibili.com/login/app/third?appkey=27eb53fc9058f8c3&api=https%3A%2F%2Fwww.mcbbs.net%2Ftemplate%2Fmcbbs%2Fimage%2Fspecial_photo_bg.png&sign=04224646d1fea004e79606d3b038c84a', {
         method: 'GET',
         credentials: 'include'
       })
@@ -493,7 +492,7 @@
     }
     const token = options.accessKey ? '&access_key=' + options.accessKey : '';
     const url1 = `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`;
-    const url2 = 'https://app.bilibili.com/x/feed/index?build=1&mobi_app=android&idx=';
+    const url2 = 'https://app.bilibili.com/x/feed/index?appkey=27eb53fc9058f8c3&build=1&mobi_app=android&idx=';
     const url3 = 'https://app.bilibili.com/x/v2/feed/index?build=70600100&mobi_app=iphone&idx=';
     let result = null;
     let data = [];
@@ -502,9 +501,9 @@
       // 4-24 5-30 6-36 7-42
       if(options.sizes > 36){
         for(let i=0;i<6;i++){
-          let uri = url1; // url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
+          let uri = url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
           // console.log(uri);
-          await getRecommend(uri, 'new').then(d => {
+          await getRecommend(uri).then(d => {
             data.push(d.config ? getDataV2(d.items) : d)
           }).catch(err => {
             i--;
@@ -513,9 +512,9 @@
         }
       }else{
         for(let i=0;i<5;i++){
-          let uri = url1; // url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
+          let uri = url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
           // console.log(uri);
-          await getRecommend(uri, 'new').then(d => {
+          await getRecommend(uri).then(d => {
             data.push(d.config ? getDataV2(d.items) : d)
           }).catch(err => {
             i--;
@@ -527,9 +526,9 @@
       // 4-16 5-20 6-24 7-28
       if(options.sizes > 20){
         for(let i=0;i<4;i++){
-          let uri = url1; // url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
+          let uri = url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
           // console.log(uri);
-          await getRecommend(uri, 'new').then(d => {
+          await getRecommend(uri).then(d => {
             data.push(d.config ? getDataV2(d.items) : d)
           }).catch(err => {
             i--;
@@ -539,9 +538,9 @@
       }else{
         // result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2)])
         for(let i=0;i<3;i++){
-          let uri = url1; // url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
+          let uri = url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
           // console.log(uri);
-          await getRecommend(uri, 'new').then(d => {
+          await getRecommend(uri).then(d => {
             data.push(d.config ? getDataV2(d.items) : d)
           }).catch(err => {
             i--;
@@ -558,9 +557,9 @@
     //   data[0] = new2old(data[0])
     // }
     // console.log(data);
-    for(let i=0;i<data.length;i++){
-      data[i] = new2old(data[i])
-    }
+    // for(let i=0;i<data.length;i++){
+    //   data[i] = new2old(data[i])
+    // }
     if(data.length < 0) return;
     list = unique(data);
     options.refresh += 1;
@@ -946,7 +945,7 @@
     if(isReturn){
       url += '/cancel'
     }
-    url += `?build=5000000&goto=${params.goto}&id=${params.id}&mid=${params.mid}&reason_id=${params.reason_id}&rid=${params.rid}&tag_id=${params.tag_id}` + token;
+    url += `?appkey=27eb53fc9058f8c3&build=5000000&goto=${params.goto}&id=${params.id}&mid=${params.mid}&reason_id=${params.reason_id}&rid=${params.rid}&tag_id=${params.tag_id}` + token;
     GM_xmlhttpRequest({
       method: 'GET',
       url: url,
