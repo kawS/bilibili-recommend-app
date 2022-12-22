@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      5.3
+// @version      5.4
 // @description  网页端首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -35,7 +35,7 @@
   'use strict';
   
   const isNewTest = $('#i_cecream').find('.bili-feed4').length > 0 ? true : false;
-  const itemHeight = isNewTest ? $('.recommended-swipe').next('.recommended-card').height() : $('.bili-grid').eq(0).find('.bili-video-card').height();
+  const itemHeight = isNewTest ? $('.recommended-swipe').next('.feed-card').height() : $('.bili-grid').eq(0).find('.bili-video-card').height();
   let $list = null;
   let isWait = false;
   let isLoading = true;
@@ -49,7 +49,7 @@
     accessKey: GM_getValue('biliAppHomeKey'),
     dateKey: GM_getValue('biliAppHomeKeyDate'),
     isShowDanmaku: GM_getValue('biliAppDanmaku') || false,
-    isShowRec: GM_getValue('biliAppRec') || false
+    isShowRec: true // GM_getValue('biliAppRec') || false
   }
   function init(){
     if(location.href.startsWith('https://www.mcbbs.net/template/mcbbs/image/special_photo_bg.png?')){
@@ -155,11 +155,11 @@
             </div>
             <div class="right">
               <a href="https://github.com/nilaoda/BBDown" target="https://github.com/nilaoda/BBDown" class="lk">BBDown说明</a>
-              <div class="be-switch-container setting-privacy-switcher${options.isShowRec ? ' is-checked': ''}" id="JShowRec">
+              <!--<div class="be-switch-container setting-privacy-switcher${options.isShowRec ? ' is-checked': ''}" id="JShowRec">
                 <input type="checkbox" class="be-switch-input" value="${options.isShowRec}">
                 <div class="be-switch"><i class="be-switch-cursor"></i></div>
                 <div class="be-switch-label"><span>是否只保留推荐视频</span></div>
-              </div>
+              </div>-->
               <div class="be-switch-container setting-privacy-switcher${options.isShowDanmaku ? ' is-checked': ''}" id="JShowDanmaku">
                 <input type="checkbox" class="be-switch-input" value="${options.isShowDanmaku}">
                 <div class="be-switch"><i class="be-switch-cursor"></i></div>
