@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      5.4
-// @description  网页端首页推荐视频
+// @version      5.5
+// @description  网页端app首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
 // @icon         https://www.bilibili.com/favicon.ico
 // @compatible   chrome
+// @compatible   edge
 // @compatible   firefox
 // @compatible   safari
 
@@ -42,53 +43,52 @@
   let options = {
     clientWidth: $(window).width(),
     sizes: null,
-    timeoutKey: 2592000000,
+    timeoutKey: 1900800000,
     refresh: 1,
     oneItemHeight: itemHeight,
     listHeight: itemHeight * 4 + 20 * 3,
     accessKey: GM_getValue('biliAppHomeKey'),
     dateKey: GM_getValue('biliAppHomeKeyDate'),
-    isShowDanmaku: GM_getValue('biliAppDanmaku') || false,
-    isShowRec: true // GM_getValue('biliAppRec') || false
+    isShowDanmaku: GM_getValue('biliAppDanmaku') || false
   }
   function init(){
     if(location.href.startsWith('https://www.mcbbs.net/template/mcbbs/image/special_photo_bg.png?')){
       window.stop();
       return window.top.postMessage(location.href, 'https://www.bilibili.com')
     }
-    window.localStorage['bilibili_player_force_DolbyAtmos&8K&HDR'] = 1;
+    localStorage.setItem('bilibili_player_force_DolbyAtmos&8K&HDR', 1);
     Object.defineProperty(navigator, 'userAgent', {
         value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 12_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15'
     });
     if(location.pathname != '/') return;
-    setSize(options.clientWidth, options.isShowRec);
+    setSize(options.clientWidth);
     initStyle();
     intiHtml();
     initEvent();
     checkAccessKey();
     getRecommendList();
   }
-  function setSize(width, setRow){
-    let row = setRow ? 5 : 4;
-    if(width <= 1100){
-      options.sizes = 4 * row
-    }
-    if(width > 1100 && width <= 1700){
-      options.sizes = 5 * row
-    }
-    if(width > 1700 && width < 2200){
-      options.sizes = 6 * row
-    }
-    if(width >= 2200){
-      options.sizes = 7 * row
-    }
+  function setSize(width){
+    let row = 5;
     if(isNewTest){
       if(width <=1400){
         options.sizes = 4 * row
       }else{
         options.sizes = 5 * row
       }
-      
+    }else{
+      if(width <= 1100){
+        options.sizes = 4 * row
+      }
+      if(width > 1100 && width <= 1700){
+        options.sizes = 5 * row
+      }
+      if(width > 1700 && width < 2200){
+        options.sizes = 6 * row
+      }
+      if(width >= 2200){
+        options.sizes = 7 * row
+      }
     }
   }
   function initStyle(){
@@ -96,11 +96,7 @@
       <style>
         @keyframes turn{0%{-webkit-transform:rotate(0deg)}100%{-webkit-transform:rotate(360deg)}}
         .taglike{position: absolute;bottom: 25px;left: 8px;padding: 0 2px;height: 18px;line-height: 18px;font-size: 12px;}
-        .load-state{position: absolute;top: 0;left: 0;background: rgba(0,0,0,.8);width: 100%;height: 100%;min-height: 240px;border-radius: 4px;font-size: 3rem;color: #fff;text-align: center;z-index: 50}
-        .load-state .loading{line-height: 240px}
-        .load-state .loading svg{margin:0 10px 0 0;width:2rem;height:2rem;transform: rotate(0deg);animation:turn 1s linear infinite;transition: transform .5s ease}
         .toast{position: fixed;top: 30%;left: 50%;z-index: 999999;margin-left: -180px;padding: 12px 24px;font-size: 14px;background: rgba(0,0,0,.8);width: 360px;border-radius: 6px;color: #fff;text-align: center}
-        .BBDown{margin-top: 4px;width: 60%;line-height: 1;font-size: 12px;display: inline-block;}
         .v-inline-danmaku{position: absolute;top: 0;left: 0;width: 100%;height: 100%;z-index: 2;pointer-events: none;user-select: none;border-radius: inherit;opacity: 0;transition: opacity .2s linear;overflow: hidden}
         .v-inline-danmaku.visible{opacity: 1}
         .v-inline-danmaku p{position: absolute;color: #fff;text-shadow: #000 1px 0px 1px, #000 0px 1px 1px, #000 0px -1px 1px, #000 -1px 0px 1px;white-space: nowrap;opacity: 0}
@@ -129,37 +125,46 @@
         #recommend .bili-video-card .bili-video-card__info--tit{position: relative;padding: 0 20px 0 50px}
         #recommend .bili-video-card .bili-video-card__info--tit .more{position: absolute;bottom: 0;right: 0;width: 20px;text-align: right;cursor: pointer;fill: var(--graph_icon)}
         #recommend .area-header{height: 34px;}
-        #recommend .roll-btn-wrap{top: 380px;z-index: 15}
         #recommend .first-paint{display: grid;position: relative;width: 100%;grid-gap: 20px;grid-column: span 5;grid-template-columns: repeat(5,1fr);}
         @media (max-width: 1399.9px){
           #recommend .first-paint{grid-column: span 4;grid-template-columns: repeat(4,1fr);}
         }
         #recommend.recommended-container .first-paint>*:nth-of-type(1n + 8){margin-top: 0!important}
         #recommend.recommended-container .first-paint>*:nth-of-type(1n + 6){margin-top: 0!important}
-        #recommend.recommended-container{position: relative;${options.isShowRec ? '' : 'padding-top: 30px;border-top: 4px solid var(--line_light)'}}
-        @media (max-width: 1099.9px){
-          #recommend .roll-btn-wrap{left: initial;right: -10px;transform: initial;opacity: .8;
-        }
+        #recommend.recommended-container{position: relative;}
+        #recommend-list{margin-bottom: 20px}
       </style>`;
     $('head').append(style)
   }
   function intiHtml(){
-    const $position = isNewTest ? $('.feed2').find('.recommended-container') : $('.bili-grid').eq(1);
     const $fullpage = $('#i_cecream');
-    const html = `
-      <section class="${isNewTest ? 'recommended-container' : 'bili-grid'}" data-area='Tampermonkey插件推荐' id="recommend">
+    let html = null;
+    let emptyHtml = '';
+    if($fullpage.length <= 0) return;
+    for(let i=0;i<options.sizes;i++){
+      emptyHtml += `
+        <div class="bili-video-card" style="display: block !important">
+          <div class="bili-video-card__skeleton loading_animation">
+            <div class="bili-video-card__skeleton--cover"></div>
+            <div class="bili-video-card__skeleton--info">
+              <div class="bili-video-card__skeleton--right">
+                <p class="bili-video-card__skeleton--text"></p>
+                <p class="bili-video-card__skeleton--text short"></p>
+                <p class="bili-video-card__skeleton--light"></p>
+              </div>
+            </div>
+          </div>
+        </div>`
+    }
+    html = `
+      <section class="${isNewTest ? 'recommended-container' : 'bili-grid'}" data-area='Tampermonkey插件-app首页推荐' id="recommend">
         <div class="eva-extension-area">
           <div class="area-header">
             <div class="left">
-              <a href="javascript:;" class="title"><span>Tampermonkey插件推荐</span></a>
+              <a href="javascript:;" class="title"><span>Tampermonkey插件-app首页推荐</span></a>
             </div>
             <div class="right">
               <a href="https://github.com/nilaoda/BBDown" target="https://github.com/nilaoda/BBDown" class="lk">BBDown说明</a>
-              <!--<div class="be-switch-container setting-privacy-switcher${options.isShowRec ? ' is-checked': ''}" id="JShowRec">
-                <input type="checkbox" class="be-switch-input" value="${options.isShowRec}">
-                <div class="be-switch"><i class="be-switch-cursor"></i></div>
-                <div class="be-switch-label"><span>是否只保留推荐视频</span></div>
-              </div>-->
               <div class="be-switch-container setting-privacy-switcher${options.isShowDanmaku ? ' is-checked': ''}" id="JShowDanmaku">
                 <input type="checkbox" class="be-switch-input" value="${options.isShowDanmaku}">
                 <div class="be-switch"><i class="be-switch-cursor"></i></div>
@@ -168,32 +173,18 @@
               <button class="primary-btn roll-btn" id="JaccessKey"}>
                 <span>${options.accessKey ? '删除授权' : '获取授权'}</span>
               </button>
-              <button class="primary-btn roll-btn"${options.isShowRec ? ' style="display: none"' : ''} id="Jrefresh">
-                <svg style="transform: rotate(0deg);"><use xlink:href="#widget-roll"></use></svg>
-                <span>换一换</span>
-              </button>
             </div>
           </div>
           <div class="${isNewTest ? 'first-paint' : 'eva-extension-body'}" id="recommend-list"></div>
-        </div>
-        <div class="roll-btn-wrap"${options.isShowRec ? ' style="display: none"' : ''}>
-          <button class="primary-btn roll-btn" id="JrefreshRight">
-            <svg style="transform:rotate(0deg);"><use xlink:href="#widget-roll"></use></svg>
-            <span>换一换</span>
-          </button>
+          <div class="${isNewTest ? 'first-paint' : 'eva-extension-body'}" id="empty-list">${emptyHtml}</div>
         </div>
       </section>`;
-    if($fullpage.length <= 0) return;
-    if(options.isShowRec){
-      if(isNewTest){
-        $fullpage.find('.feed2').before(`<div id="scrollwrap">${html}</div>`)
-      }else{
-        $fullpage.find('.bili-header').after(`<main class="bili-layout" id="scrollwrap">${html}</main>`);
-      }
-      $('#scrollwrap').next().hide()
+    if(isNewTest){
+      $fullpage.find('.recommended-container_floor-aside').before(`<div id="scrollwrap">${html}</div>`)
     }else{
-      $position.after(html);
+      $fullpage.find('.bili-header').after(`<main class="bili-layout" id="scrollwrap">${html}</main>`);
     }
+    $('#scrollwrap').next().hide();
     $list = $('#recommend-list');
   }
   function initEvent(){
@@ -210,21 +201,6 @@
         $this.find('span').text('获取中...');
         getAccessKey($this)
       }
-      return false
-    })
-    $('#Jrefresh, #JrefreshRight').on('click', function(){
-      if($('.load-state').length > 0) return;
-      const $this = $(this);
-      const reg = /(rotate\([\-\+]?((\d+)(deg))\))/i;
-      let $svg = $this.find('svg');
-      let css = $svg.attr('style');
-      let wts = css.match(reg);
-      $svg.css('transform', `rotate(${parseFloat(wts[3]) + 360}deg)`);
-      options.clientWidth = $(window).width();
-      options.oneItemHeight = isNewTest ? $('.recommended-swipe').next('.recommended-card').height() : $('.bili-grid').eq(0).find;
-      options.listHeight = $('#recommend-list').height();
-      setSize(options.clientWidth);
-      getRecommendList();
       return false
     })
     $list.on('mouseenter', '.bili-video-card__image', function(e){
@@ -308,46 +284,17 @@
       }
       return false
     })
-    $('#JShowRec').on('click', function(){
+    $(window).on('scroll', function(){
+      if(options.refresh == 1) return;
       const $this = $(this);
-      const $inp = $this.find('input');
-      let val = JSON.parse($inp.val());
-      options.isShowRec = !val;
-      GM_setValue('biliAppRec', options.isShowRec);
-      $inp.val(options.isShowRec);
-      if(options.isShowRec){
-        $this.addClass('is-checked')
-      }else{
-        $this.removeClass('is-checked')
+      if(($this.scrollTop() + $(window).height()) > ($('#empty-list').offset().top - options.oneItemHeight)){
+        if(isLoading) return;
+        isLoading = true;
+        options.clientWidth = $(window).width();
+        setSize(options.clientWidth);
+        getRecommendList()
       }
-      toast('2秒后刷新页面，请稍后！', function(){
-        location.reload()
-      })
-      return false
     })
-    if(options.isShowRec){
-      $(window).on('scroll', function(){
-        const $this = $(this);
-        if(isNewTest && options.isShowRec){
-          if($this.scrollTop() > $('.bili-header').height()){
-            if($('.header-channel').is(':hidden')){
-              $('.header-channel').fadeIn()
-            }
-          }else{
-            if(!$('.header-channel').is(':hidden')){
-              $('.header-channel').hide()
-            }
-          }
-        }
-        if(($this.scrollTop() + options.oneItemHeight * 3) > ($(document).height() - $(window).height())){
-          if(isLoading) return;
-          isLoading = true;
-          options.clientWidth = $(window).width();
-          setSize(options.clientWidth, true);
-          getRecommendList()
-        }
-      })
-    }
   }
   function toast(msg, cb, duration = 2000){
     const $toast = $(`<div class="toast">${msg}</div>`);
@@ -356,14 +303,6 @@
       $toast.remove();
       typeof cb == 'function' && cb()
     }, duration)
-  }
-  function showLoading(minHeight){
-    $list.prepend(`
-      <div class="load-state spread-module" style="height:${minHeight}px">
-        <p class="loading" style="line-height:${minHeight / 2}px">
-          <svg><use xlink:href="#widget-roll"></use></svg>正在加载...
-        </p>
-      </div>`)
   }
   function delAccessKey(){
     isWait = false;
@@ -479,98 +418,27 @@
     })
   }
   async function getRecommendList(){
-    if(options.refresh == 1){
-      !isNewTest && $list.height(options.listHeight)
-      showLoading(options.listHeight);
-    }else{
-      if($list.attr('style')){
-        $list.removeAttr('style')
-      }
-      if(!options.isShowRec){
-        showLoading(options.listHeight);
-      }
-    }
     const token = options.accessKey ? '&access_key=' + options.accessKey : '';
-    const url1 = `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`;
-    const url2 = 'https://app.bilibili.com/x/feed/index?appkey=27eb53fc9058f8c3&build=1&mobi_app=android&idx=';
-    const url3 = 'https://app.bilibili.com/x/v2/feed/index?build=70600100&mobi_app=iphone&idx=';
-    let result = null;
+    // const url = `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`;
+    // const url = 'https://app.bilibili.com/x/v2/feed/index?build=70600100&mobi_app=iphone&idx=';
+    const url = 'https://app.bilibili.com/x/feed/index?appkey=27eb53fc9058f8c3&build=1&mobi_app=android&idx=';
     let data = [];
     let list = null;
-    if(options.isShowRec){
-      // 4-24 5-30 6-36 7-42
-      if(options.sizes > 36){
-        for(let i=0;i<6;i++){
-          let uri = url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
-          // console.log(uri);
-          await getRecommend(uri).then(d => {
-            data.push(d.config ? getDataV2(d.items) : d)
-          }).catch(err => {
-            i--;
-            console.log(err)
-          })
-        }
-      }else{
-        for(let i=0;i<5;i++){
-          let uri = url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
-          // console.log(uri);
-          await getRecommend(uri).then(d => {
-            data.push(d.config ? getDataV2(d.items) : d)
-          }).catch(err => {
-            i--;
-            console.log(err)
-          })
-        }
-      }
-    }else{
-      // 4-16 5-20 6-24 7-28
-      if(options.sizes > 20){
-        for(let i=0;i<4;i++){
-          let uri = url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
-          // console.log(uri);
-          await getRecommend(uri).then(d => {
-            data.push(d.config ? getDataV2(d.items) : d)
-          }).catch(err => {
-            i--;
-            console.log(err)
-          })
-        }
-      }else{
-        // result = Promise.all([getRecommend(url1, 'new'), getRecommend(url2)])
-        for(let i=0;i<3;i++){
-          let uri = url2 + i + ((Date.now() / 1000).toFixed(0)) + token;
-          // console.log(uri);
-          await getRecommend(uri).then(d => {
-            data.push(d.config ? getDataV2(d.items) : d)
-          }).catch(err => {
-            i--;
-            console.log(err)
-          })
-        }
-      }
+    // 4-20 5-25 6-30 7-35
+    for(let i=0;i<5;i++){
+      let uri = url + i + ((Date.now() / 1000).toFixed(0)) + token;
+      await getRecommend(uri).then(d => {
+        data.push(d)
+      }).catch(err => {
+        i--;
+        console.log(err)
+      })
     }
-    // if(options.isShowRec){
-    //   data[0] = new2old(data[0]);
-    //   data[2] = new2old(data[2]);
-    //   options.isShowRec && (data[4] = new2old(data[4]))
-    // }else{
-    //   data[0] = new2old(data[0])
-    // }
-    // console.log(data);
-    // for(let i=0;i<data.length;i++){
-    //   data[i] = new2old(data[i])
-    // }
     if(data.length < 0) return;
     list = unique(data);
     options.refresh += 1;
     !$('.bili-footer').is('hidden') && $('.bili-footer').hide();
     updateRecommend(list);
-  }
-  function getDataV2(data){
-    return data.filter(item => {
-      // return item.card_type == 'small_cover_v2'
-      return item.goto == 'av'
-    })
   }
   function new2old(data){
     return data.map((item) => {
@@ -600,15 +468,8 @@
     })
   }
   function unique(data){
-    const arr = data[0].concat(data[1], data[2] || [], data[3] || [], data[4] || [], data[5] || []);
-    let result = [];
-    let cidList = {};
-    for(let item of arr){
-      if(!cidList[item.cid]){
-        result.push(item);
-        cidList[item.cid] = true
-      }
-    }
+    const arr = data.flat();
+    let result = Array.from(new Set(arr));
     return result.sort(function(){
       return Math.random() - 0.5
     })
@@ -722,18 +583,13 @@
           </div>
         </div>`;
     }
-    if(options.isShowRec){
-      $list.append(html);
-      $('.load-state').remove();
-      setTimeout(() => {
-        isLoading = false;
-        if($(document).height() - $(window).height() <= 0){
-          getRecommendList()
-        }
-      }, 300)
-    }else{
-      $list.html(html)
-    }
+    $list.append(html);
+    setTimeout(() => {
+      isLoading = false;
+      if($(document).height() - $(window).height() <= 0){
+        getRecommendList()
+      }
+    }, 300)
   }
   function formatNumber(input, format = 'number'){
     if (format == 'time') {

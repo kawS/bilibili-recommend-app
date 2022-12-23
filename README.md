@@ -1,6 +1,6 @@
 # bilibili-recommend-app
 
-tampermonkey插件-b站新版首页推荐视频
+tampermonkey插件-b站首页app推荐视频
 
 原作者：indefined
 
@@ -8,7 +8,8 @@ tampermonkey插件-b站新版首页推荐视频
 
 ## 功能
 
-- 首页推荐视频
+- 只支持新版和内测版
+- app首页推荐视频
 - 稍后查看/移除
 - 图片预览
 - 账户授权
