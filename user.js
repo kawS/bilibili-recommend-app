@@ -132,7 +132,7 @@
         #recommend.recommended-container .first-paint>*:nth-of-type(1n + 8){margin-top: 0!important}
         #recommend.recommended-container .first-paint>*:nth-of-type(1n + 6){margin-top: 0!important}
         #recommend.recommended-container{position: relative;}
-        #recommend-list{margin-bottom: 20px}
+        #empty-list{padding-bottom: 20px}
       </style>`;
     $('head').append(style)
   }
@@ -469,7 +469,14 @@
   }
   function unique(data){
     const arr = data.flat();
-    let result = Array.from(new Set(arr));
+    let result = [];
+    let cidList = {};
+    for(let item of arr){
+      if(!cidList[item.cid]){
+        result.push(item);
+        cidList[item.cid] = true
+      }
+    }
     return result.sort(function(){
       return Math.random() - 0.5
     })
@@ -584,6 +591,11 @@
         </div>`;
     }
     $list.append(html);
+    if(options.refresh > 1){
+      if(!$('#empty-list').attr('style')){
+        $('#empty-list').css('padding-top', '20px')
+      }
+    }
     setTimeout(() => {
       isLoading = false;
       if($(document).height() - $(window).height() <= 0){
