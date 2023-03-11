@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      5.5
+// @version      5.8
 // @description  网页端app首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -49,7 +49,9 @@
     listHeight: itemHeight * 4 + 20 * 3,
     accessKey: GM_getValue('biliAppHomeKey'),
     dateKey: GM_getValue('biliAppHomeKeyDate'),
-    isShowDanmaku: GM_getValue('biliAppDanmaku') || false
+    isShowDanmaku: typeof GM_getValue('biliAppDanmaku') == 'undefined' ? false : GM_getValue('biliAppDanmaku'),
+    isAppType: typeof GM_getValue('biliAppType') == 'undefined' ? true : GM_getValue('biliAppType') // true:app;false:pc
+
   }
   function init(){
     if(location.href.startsWith('https://www.mcbbs.net/template/mcbbs/image/special_photo_bg.png?')){
@@ -107,7 +109,6 @@
         .be-switch-cursor{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:12px;background:#fff;transition:left .2s ease}
         .be-switch-label{line-height:20px;font-size:14px;margin-left:3px;vertical-align:middle}
         .be-switch-input{position:absolute;left:0;top:0;margin:0;opacity:0;width:100%;height:100%;z-index:2;display: none}
-        .lk{line-height: 20px;text-decoration: underline;}
         #recommend{margin-bottom: 40px;}
         #recommend .bili-video-card .bili-video-card__info{position: relative}
         #recommend .bili-video-card .bili-video-card__info .ctrl{position: absolute;bottom: 0;right: 0;background: rgba(0,0,0,.8);width: 100%;height: 0;border-radius: 6px;color: #fff;z-index: 15;display: none}
@@ -133,6 +134,7 @@
         #recommend.recommended-container .first-paint>*:nth-of-type(1n + 6){margin-top: 0!important}
         #recommend.recommended-container{position: relative;}
         #empty-list{padding-bottom: 20px}
+        .palette-feed4{display: none}
       </style>`;
     $('head').append(style)
   }
@@ -164,7 +166,11 @@
               <a href="javascript:;" class="title"><span>Tampermonkey插件-app首页推荐</span></a>
             </div>
             <div class="right">
-              <a href="https://github.com/nilaoda/BBDown" target="https://github.com/nilaoda/BBDown" class="lk">BBDown说明</a>
+              <div class="be-switch-container setting-privacy-switcher${options.isAppType ? ' is-checked': ''}" id="JUseApp">
+                <input type="checkbox" class="be-switch-input" value="${options.isAppType}">
+                <div class="be-switch"><i class="be-switch-cursor"></i></div>
+                <div class="be-switch-label"><span>是否使用app接口</span></div>
+              </div>
               <div class="be-switch-container setting-privacy-switcher${options.isShowDanmaku ? ' is-checked': ''}" id="JShowDanmaku">
                 <input type="checkbox" class="be-switch-input" value="${options.isShowDanmaku}">
                 <div class="be-switch"><i class="be-switch-cursor"></i></div>
@@ -284,6 +290,23 @@
       }
       return false
     })
+    $('#JUseApp').on('click', function(){
+      const $this = $(this);
+      const $inp = $this.find('input');
+      let val = JSON.parse($inp.val());
+      options.isAppType = !val;
+      GM_setValue('biliAppType', options.isAppType);
+      $inp.val(options.isAppType);
+      if(options.isAppType){
+        $this.addClass('is-checked')
+      }else{
+        $this.removeClass('is-checked')
+      }
+      setTimeout(() => {
+        location.reload()
+      }, 500)
+      return false
+    })
     $(window).on('scroll', function(){
       if(options.refresh == 1) return;
       const $this = $(this);
@@ -361,10 +384,13 @@
       if (key) {
         GM_setValue('biliAppHomeKey', options.accessKey = key[1]);
         GM_setValue('biliAppHomeKeyDate',  options.dateKey = +new Date());
-        toast('获取授权成功');
+        toast('获取授权成功，1s后刷新');
         $el.find('span').text('删除授权');;
         clearTimeout(timeout);
         $iframe.remove();
+        setTimeout(() => {
+          location.reload()
+        }, 1000)
       } else {
         toast('没有获得匹配的密钥')
       }
@@ -391,6 +417,9 @@
       GM_xmlhttpRequest({
         method: 'GET',
         url: url,
+        headers: {
+          "User-Agent": "bili-universal/71100100 CFNetwork/1399 Darwin/22.1.0 os/ios model/iPhone 12 Pro mobi_app/iphone build/71100100 osVer/16.1.2 network/2 channel/AppStore"
+        },
         onload: res => {
           try {
             const rep = JSON.parse(res.response);
@@ -421,27 +450,29 @@
     const token = options.accessKey ? '&access_key=' + options.accessKey : '';
     // const url = `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`;
     // const url = 'https://app.bilibili.com/x/v2/feed/index?build=70600100&mobi_app=iphone&idx=';
-    const url = 'https://app.bilibili.com/x/feed/index?appkey=27eb53fc9058f8c3&build=1&mobi_app=android&idx=';
+    // const url = 'https://app.bilibili.com/x/feed/index?appkey=27eb53fc9058f8c3&build=1&mobi_app=android&idx=';
+    const url = options.isAppType ? 'https://app.bilibili.com/x/feed/index?appkey=27eb53fc9058f8c3&build=1&mobi_app=android&idx=' : `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`
     let data = [];
     let list = null;
     // 4-20 5-25 6-30 7-35
     for(let i=0;i<5;i++){
       let uri = url + i + ((Date.now() / 1000).toFixed(0)) + token;
       await getRecommend(uri).then(d => {
-        data.push(d)
+        options.isAppType ? data.push(d) : data.push(d.item)
       }).catch(err => {
         i--;
         console.log(err)
       })
     }
     if(data.length < 0) return;
-    list = unique(data);
+    list = options.isAppType ? unique(data) : new2old(data);
     options.refresh += 1;
     !$('.bili-footer').is('hidden') && $('.bili-footer').hide();
     updateRecommend(list);
   }
   function new2old(data){
-    return data.map((item) => {
+    const _data = data.flat();
+    return _data.map((item) => {
       return {
         autoplay: 1,
         cid: item.cid,
@@ -569,8 +600,9 @@
                   <div class="sp">
                     <a href="javascript:;" data-aid="${data.param}" id="Jwatch">稍后再看</a>
                     <a href="javascript:;" data-id="${data.goto == 'av' ? 'av' + data.param : data.uri}" id="Jbbdown">BBDown下载</a>
+                    <a href="https://github.com/nilaoda/BBDown" target="https://github.com/nilaoda/BBDown" class="lk">BBDown说明</a>
                   </div>
-                  <div class="dislike"${options.accessKey ? (data.goto == 'av' ? '' : ' style="display: none"') : ''}>
+                  <div class="dislike"${options.accessKey ? (data.goto == 'av' ? (options.isAppType ? '' : ' style="display: none"') : ' style="display: none"') : ''}>
                     <div class="ready">
                       <div class="tlt">-- 减少相似内容推荐 --</div>
                       <a href="javascript:;" class="dl" data-rsid="4" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">UP主</a>
