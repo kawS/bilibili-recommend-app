@@ -111,7 +111,7 @@
         .be-switch-input{position:absolute;left:0;top:0;margin:0;opacity:0;width:100%;height:100%;z-index:2;display: none}
         #recommend{margin-bottom: 40px;}
         #recommend .bili-video-card .bili-video-card__info{position: relative}
-        #recommend .bili-video-card .bili-video-card__info .ctrl{position: absolute;bottom: 0;right: 0;background: rgba(0,0,0,.8);width: 100%;height: 0;border-radius: 6px;color: #fff;z-index: 15;display: none}
+        #recommend .bili-video-card .bili-video-card__info .ctrl{position: absolute;bottom: 0;right: 0;background: rgba(0,0,0,.8);width: 100%;height: 0;border-radius: 6px;color: #fff;z-index: 15;display: none;}
         #recommend .bili-video-card .bili-video-card__info .ctrl .tb{width: 100%;height: 100%;font-size: 12px;text-align: center;display: flex;flex-direction: column;}
         #recommend .bili-video-card .bili-video-card__info .tb .sp{width: 100%;flex: 2;display: flex;align-items: center;justify-content: center;}
         #recommend .bili-video-card .bili-video-card__info .tb .sp a{flex: 1}
@@ -163,13 +163,13 @@
         <div class="eva-extension-area">
           <div class="area-header">
             <div class="left">
-              <a href="javascript:;" class="title"><span>Tampermonkey插件-app首页推荐</span></a>
+              <a href="javascript:;" class="title"><span>Tampermonkey插件-首页推荐</span></a>
             </div>
             <div class="right">
               <div class="be-switch-container setting-privacy-switcher${options.isAppType ? ' is-checked': ''}" id="JUseApp">
                 <input type="checkbox" class="be-switch-input" value="${options.isAppType}">
                 <div class="be-switch"><i class="be-switch-cursor"></i></div>
-                <div class="be-switch-label"><span>是否使用app接口</span></div>
+                <div class="be-switch-label"><span>是否使用app推荐接口</span></div>
               </div>
               <div class="be-switch-container setting-privacy-switcher${options.isShowDanmaku ? ' is-checked': ''}" id="JShowDanmaku">
                 <input type="checkbox" class="be-switch-input" value="${options.isShowDanmaku}">
@@ -259,7 +259,11 @@
     }).on('click', '#Jbbdown', function(){
       const $this = $(this);
       let id = $this.data('id');
-      GM_setClipboard(`BBDown -app -token ${options.accessKey} -mt -ia -p ALL "${id}"`);
+      if(options.isAppType){
+        GM_setClipboard(`BBDown -app -token ${options.accessKey} -mt -ia -p ALL "${id}"`);
+      }else{
+        GM_setClipboard(`BBDown -app -mt -ia -p ALL "${id}"`);
+      }
       toast('复制BBDown命令行成功')
       return false
     }).on('click', '.more', function(){
@@ -267,14 +271,14 @@
       const $wp = $this.closest('.bili-video-card__wrap');
       $wp.find('.ctrl').css({
         'height': $wp.height()
-      }).show();
+      }).fadeIn();
       return false
     }).on('mouseleave', '.ctrl', function(){
       const $this = $(this);
       if($this.find('.dlike').length > 0){
         return
       }
-      $this.hide()
+      $this.fadeOut()
     })
     $('#JShowDanmaku').on('click', function(){
       const $this = $(this);
@@ -456,7 +460,7 @@
     let list = null;
     // 4-20 5-25 6-30 7-35
     for(let i=0;i<5;i++){
-      let uri = url + i + ((Date.now() / 1000).toFixed(0)) + token;
+      let uri = options.isAppType ? (url + i + ((Date.now() / 1000).toFixed(0)) + token) : url;
       await getRecommend(uri).then(d => {
         options.isAppType ? data.push(d) : data.push(d.item)
       }).catch(err => {
@@ -519,8 +523,8 @@
       if(!data){
         continue
       }
-      html += `
-        <div class="bili-video-card" style="display: block !important">
+      html += 
+        `<div class="bili-video-card" style="display: block !important">
           <div class="bili-video-card__skeleton hide">
             <div class="bili-video-card__skeleton--cover"></div>
             <div class="bili-video-card__skeleton--info">
@@ -533,7 +537,7 @@
             </div>
           </div>
           <div class="bili-video-card__wrap __scale-wrap">
-            <a href="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" target="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" class="cardwp">
+            <a href="${options.isAppType ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" target="${options.isAppType ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" class="cardwp">
               <div class="bili-video-card__image __scale-player-wrap" data-go="${data.goto}" data-aid="${data.param}" data-duration="${data.goto == 'av' ? data.duration : ''}">
                 <div class="bili-video-card__image--wrap">
                   <div class="bili-watch-later" data-aid="${data.param}" style="display: none;">
@@ -580,7 +584,7 @@
               </div>
               <div class="bili-video-card__info--right">
                 <h3 class="bili-video-card__info--tit" title="${data.title}">
-                  <a href="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" target="${data.goto == 'av' ? 'https://www.bilibili.com/video/av' + data.param : data.uri}">${data.title}</a>
+                  <a href="${options.isAppType ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" target="${options.isAppType ? 'https://www.bilibili.com/video/av' + data.param : data.uri}">${data.title}</a>
                   <div class="more">
                     <svg width="20" height="24" viewBox="0 0 15 24" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.7484 5.49841C13.7484 6.46404 12.9656 7.24683 11.9999 7.24683C11.0343 7.24683 10.2515 6.46404 10.2515 5.49841C10.2515 4.53279 11.0343 3.75 11.9999 3.75C12.9656 3.75 13.7484 4.53279 13.7484 5.49841ZM13.7484 18.4985C13.7484 19.4641 12.9656 20.2469 11.9999 20.2469C11.0343 20.2469 10.2515 19.4641 10.2515 18.4985C10.2515 17.5328 11.0343 16.75 11.9999 16.75C12.9656 16.75 13.7484 17.5328 13.7484 18.4985ZM11.9999 13.7485C12.9656 13.7485 13.7484 12.9656 13.7484 12C13.7484 11.0343 12.9656 10.2515 11.9999 10.2515C11.0343 10.2515 10.2515 11.0343 10.2515 12C10.2515 12.9656 11.0343 13.7485 11.9999 13.7485Z"></path></svg>
                   </div>
@@ -599,10 +603,10 @@
                 <div class="tb">
                   <div class="sp">
                     <a href="javascript:;" data-aid="${data.param}" id="Jwatch">稍后再看</a>
-                    <a href="javascript:;" data-id="${data.goto == 'av' ? 'av' + data.param : data.uri}" id="Jbbdown">BBDown下载</a>
+                    <a href="javascript:;" data-id="${'av' + data.param}" id="Jbbdown">BBDown下载</a>
                     <a href="https://github.com/nilaoda/BBDown" target="https://github.com/nilaoda/BBDown" class="lk">BBDown说明</a>
                   </div>
-                  <div class="dislike"${options.accessKey ? (data.goto == 'av' ? (options.isAppType ? '' : ' style="display: none"') : ' style="display: none"') : ''}>
+                  <div class="dislike"${options.isAppType ? (options.accessKey ? '' : ' style="display: none"') : ' style="display: none"'}>
                     <div class="ready">
                       <div class="tlt">-- 减少相似内容推荐 --</div>
                       <a href="javascript:;" class="dl" data-rsid="4" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">UP主</a>
