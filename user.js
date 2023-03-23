@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      6.1
+// @version      6.2
 // @description  网页端app首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -322,7 +322,7 @@
     $(window).on('scroll', function(){
       if(options.refresh == 1) return;
       const $this = $(this);
-      if(($this.scrollTop() + $(window).height()) > ($('#empty-list').offset().top - options.oneItemHeight)){
+      if($this.scrollTop() + $(window).height() > ($('#empty-list').offset().top - options.oneItemHeight * 2)){
         if(isLoading) return;
         isLoading = true;
         options.clientWidth = $(window).width();
@@ -760,6 +760,7 @@
     setDanmakuRoll($el, danmakuData);
   }
   function setPosition($el, mouseX, pvData){
+    if(!pvData) return;
     const $tarDom = $el.find('.v-inline-player');
     // const $duration = $el.data('duration');
     const $pvbox = $tarDom.find('pv-box');
