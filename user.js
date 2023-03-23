@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      5.9
+// @version      6.0
 // @description  网页端app首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -43,6 +43,7 @@
   let options = {
     clientWidth: $(window).width(),
     sizes: null,
+    rowSizes: 5,
     timeoutKey: 1900800000,
     refresh: 1,
     oneItemHeight: itemHeight,
@@ -74,21 +75,27 @@
     let row = 5;
     if(isNewTest){
       if(width <=1400){
+        options.rowSizes = 4
         options.sizes = 4 * row
       }else{
+        options.rowSizes = 5
         options.sizes = 5 * row
       }
     }else{
       if(width <= 1100){
+        options.rowSizes = 4
         options.sizes = 4 * row
       }
       if(width > 1100 && width <= 1700){
+        options.rowSizes = 5
         options.sizes = 5 * row
       }
       if(width > 1700 && width < 2200){
+        options.rowSizes = 6
         options.sizes = 6 * row
       }
       if(width >= 2200){
+        options.rowSizes = 7
         options.sizes = 7 * row
       }
     }
@@ -452,27 +459,25 @@
   }
   async function getRecommendList(){
     const token = options.accessKey ? '&access_key=' + options.accessKey : '';
-    // const url = `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`;
-    // const url = 'https://app.bilibili.com/x/v2/feed/index?build=70600100&mobi_app=iphone&idx=';
-    // const url = 'https://app.bilibili.com/x/feed/index?appkey=27eb53fc9058f8c3&build=1&mobi_app=android&idx=';
     const url = options.isAppType ? 'https://app.bilibili.com/x/feed/index?appkey=27eb53fc9058f8c3&build=1&mobi_app=android&idx=' : `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`
-    let data = [];
-    let list = null;
     // 4-20 5-25 6-30 7-35
     for(let i=0;i<5;i++){
+      let data = [];
+      let list = null;
       let uri = options.isAppType ? (url + i + ((Date.now() / 1000).toFixed(0)) + token) : url;
       await getRecommend(uri).then(d => {
-        options.isAppType ? data.push(d) : data.push(d.item)
+        options.isAppType ? data.push(d) : data.push(d.item);
+        if(data.length > 0){
+          list = options.isAppType ? unique(data) : new2old(data);
+          updateRecommend(list)
+        }
+        options.refresh += 1;
       }).catch(err => {
         i--;
         console.log(err)
       })
     }
-    if(data.length < 0) return;
-    list = options.isAppType ? unique(data) : new2old(data);
-    options.refresh += 1;
     !$('.bili-footer').is('hidden') && $('.bili-footer').hide();
-    updateRecommend(list);
   }
   function new2old(data){
     const _data = data.flat();
@@ -518,7 +523,8 @@
   }
   function updateRecommend(list){
     let html = '';
-    for(let i=0;i<options.sizes;i++){
+    let forLength = options.rowSizes == 4 ? 8 : 10;
+    for(let i=0;i<forLength;i++){
       let data = list[i];
       if(!data){
         continue
@@ -634,7 +640,7 @@
     }
     setTimeout(() => {
       isLoading = false;
-      if($(document).height() - $(window).height() <= 0){
+      if($(document).height() - $('#empty-list').height() - $(window).height() <= 0){
         getRecommendList()
       }
     }, 300)
@@ -888,6 +894,5 @@
       }
     })
   }
-
   init()
 })();
