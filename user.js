@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      6.0
+// @version      6.1
 // @description  网页端app首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -43,6 +43,7 @@
   let options = {
     clientWidth: $(window).width(),
     sizes: null,
+    rows: 5,
     rowSizes: 5,
     timeoutKey: 1900800000,
     refresh: 1,
@@ -72,7 +73,7 @@
     getRecommendList();
   }
   function setSize(width){
-    let row = 5;
+    let row = options.rows = $(window).height() > 1300 ? 5 : 3;
     if(isNewTest){
       if(width <=1400){
         options.rowSizes = 4
@@ -461,14 +462,14 @@
     const token = options.accessKey ? '&access_key=' + options.accessKey : '';
     const url = options.isAppType ? 'https://app.bilibili.com/x/feed/index?appkey=27eb53fc9058f8c3&build=1&mobi_app=android&idx=' : `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`
     // 4-20 5-25 6-30 7-35
-    for(let i=0;i<5;i++){
+    for(let i=0;i<options.rows;i++){
       let data = [];
       let list = null;
       let uri = options.isAppType ? (url + i + ((Date.now() / 1000).toFixed(0)) + token) : url;
       await getRecommend(uri).then(d => {
         options.isAppType ? data.push(d) : data.push(d.item);
         if(data.length > 0){
-          list = options.isAppType ? unique(data) : new2old(data);
+          list = options.isAppType ? data.flat() : new2old(data);
           updateRecommend(list)
         }
         options.refresh += 1;
@@ -639,10 +640,7 @@
       }
     }
     setTimeout(() => {
-      isLoading = false;
-      if($(document).height() - $('#empty-list').height() - $(window).height() <= 0){
-        getRecommendList()
-      }
+      isLoading = false
     }, 300)
   }
   function formatNumber(input, format = 'number'){
