@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      6.2
+// @version      6.3
 // @description  网页端app首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -52,8 +52,8 @@
     accessKey: GM_getValue('biliAppHomeKey'),
     dateKey: GM_getValue('biliAppHomeKeyDate'),
     isShowDanmaku: typeof GM_getValue('biliAppDanmaku') == 'undefined' ? false : GM_getValue('biliAppDanmaku'),
-    isAppType: typeof GM_getValue('biliAppType') == 'undefined' ? true : GM_getValue('biliAppType') // true:app;false:pc
-
+    isAppType: typeof GM_getValue('biliAppType') == 'undefined' ? true : GM_getValue('biliAppType'), // true:app;false:pc
+    isWeek:  typeof GM_getValue('biliWeek') == 'undefined' ? false : GM_getValue('biliWeek')
   }
   function init(){
     if(location.href.startsWith('https://www.mcbbs.net/template/mcbbs/image/special_photo_bg.png?')){
@@ -178,6 +178,11 @@
                 <input type="checkbox" class="be-switch-input" value="${options.isAppType}">
                 <div class="be-switch"><i class="be-switch-cursor"></i></div>
                 <div class="be-switch-label"><span>是否使用app推荐接口</span></div>
+              </div>
+              <div class="be-switch-container setting-privacy-switcher${options.isWeek ? ' is-checked': ''}" id="JUseWeek">
+                <input type="checkbox" class="be-switch-input" value="${options.isWeek}">
+                <div class="be-switch"><i class="be-switch-cursor"></i></div>
+                <div class="be-switch-label"><span>是否只看最近7天推荐</span></div>
               </div>
               <div class="be-switch-container setting-privacy-switcher${options.isShowDanmaku ? ' is-checked': ''}" id="JShowDanmaku">
                 <input type="checkbox" class="be-switch-input" value="${options.isShowDanmaku}">
@@ -319,6 +324,24 @@
       }, 500)
       return false
     })
+    $('#JUseWeek').on('click', function(){
+      const $this = $(this);
+      const $inp = $this.find('input');
+      let val = JSON.parse($inp.val());
+      options.isWeek = !val;
+      GM_setValue('biliWeek', options.isWeek);
+      $inp.val(options.isWeek);
+      if(options.isWeek){
+        $this.addClass('is-checked')
+      }else{
+        $this.removeClass('is-checked')
+      }
+      setTimeout(() => {
+        location.reload()
+      }, 500)
+      return false
+    })
+    
     $(window).on('scroll', function(){
       if(options.refresh == 1) return;
       const $this = $(this);
@@ -458,11 +481,11 @@
       })
     })
   }
-  async function getRecommendList(){
+  async function getRecommendList(rowLength){
     const token = options.accessKey ? '&access_key=' + options.accessKey : '';
     const url = options.isAppType ? 'https://app.bilibili.com/x/feed/index?appkey=27eb53fc9058f8c3&build=1&mobi_app=android&idx=' : `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`
     // 4-20 5-25 6-30 7-35
-    for(let i=0;i<options.rows;i++){
+    for(let i=0;i<(rowLength || options.rows);i++){
       let data = [];
       let list = null;
       let uri = options.isAppType ? (url + i + ((Date.now() / 1000).toFixed(0)) + token) : url;
@@ -525,113 +548,20 @@
   function updateRecommend(list){
     let html = '';
     let forLength = options.rowSizes == 4 ? 8 : 10;
+    let weekLength = 0;
     for(let i=0;i<forLength;i++){
       let data = list[i];
       if(!data){
         continue
       }
-      html += 
-        `<div class="bili-video-card" style="display: block !important">
-          <div class="bili-video-card__skeleton hide">
-            <div class="bili-video-card__skeleton--cover"></div>
-            <div class="bili-video-card__skeleton--info">
-              <div class="bili-video-card__skeleton--face"></div>
-              <div class="bili-video-card__skeleton--right">
-                <p class="bili-video-card__skeleton--text"></p>
-                <p class="bili-video-card__skeleton--text short"></p>
-                <p class="bili-video-card__skeleton--light"></p>
-              </div>
-            </div>
-          </div>
-          <div class="bili-video-card__wrap __scale-wrap">
-            <a href="${options.isAppType ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" target="${options.isAppType ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" class="cardwp">
-              <div class="bili-video-card__image __scale-player-wrap" data-go="${data.goto}" data-aid="${data.param}" data-duration="${data.goto == 'av' ? data.duration : ''}">
-                <div class="bili-video-card__image--wrap">
-                  <div class="bili-watch-later" data-aid="${data.param}" style="display: none;">
-                    <svg class="bili-watch-later__icon"><use xlink:href="#widget-watch-later"></use></svg>
-                    <span class="bili-watch-later__tip" style="display: none;">稍后再看</span>
-                  </div>
-                  <picture class="v-img bili-video-card__cover">
-                    <source srcset="${data.cover.replace('http:', 'https:')}@672w_378h_1c_100q.webp" type="image/webp"/>
-                    <img src="${data.cover.replace('http:', 'https:')}@672w_378h_1c_100q" alt="${data.title}" loading="eager" onload=""/>
-                  </picture>
-                  <div class="v-inline-player"></div>
-                  <div class="v-inline-danmaku"></div>
-                </div>
-                <div class="bili-video-card__mask">
-                  ${data.badge ? `<div class="taglike" style="background: #ff8f00;color: #fff;">${data.badge}</div>` : data.rcmd_reason && data.rcmd_reason.content == '已关注' ? `<div class="taglike" style="background: #ff8f00;color: #fff;">已关注</div>` : ''}
-                  <div class="bili-video-card__stats">
-                    <div class="bili-video-card__stats--left">
-                      <span class="bili-video-card__stats--item">
-                        <svg class="bili-video-card__stats--icon">
-                          <use xlink:href="#widget-play-count"></use>
-                        </svg>
-                        <span class="bili-video-card__stats--text">${formatNumber(data.play)}</span>
-                      </span>
-                      <span class="bili-video-card__stats--item"${data.goto == 'av' ? '' : ' style="display: none"'}>
-                        <svg class="bili-video-card__stats--icon"><use xlink:href="#widget-agree"></use></svg>
-                        <span class="bili-video-card__stats--text">${formatNumber(data.like)}</span>
-                      </span>
-                    </div>
-                    <span class="bili-video-card__stats__duration">${data.goto == 'av' ? formatNumber(data.duration, 'time') : formatNumber(data.favorite) + '收藏'}</span>
-                  </div>
-                </div>
-              </div>
-            </a>
-            <div class="bili-video-card__info __scale-disable">
-              <div class="bvcd-left" ${data.name ? 'title="' + data.name + '"' : ''}>
-                <a href="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : '928123')}" target="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : data.badge == '国创' ? '98627270' : '928123')}">
-                  <div class="v-avatar bili-video-card__avatar">
-                    <picture class="v-img v-avatar__face">
-                      <source srcset="${data.face.replace('http:', 'https:')}@72w_72h.webp" type="image/webp"/>
-                      <img src="${data.face.replace('http:', 'https:')}@72w_72h" alt="${data.name || data.badge}" loading="lazy" onload=""/>
-                    </picture>
-                  </div>
-                </a>
-              </div>
-              <div class="bili-video-card__info--right">
-                <h3 class="bili-video-card__info--tit" title="${data.title}">
-                  <a href="${options.isAppType ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" target="${options.isAppType ? 'https://www.bilibili.com/video/av' + data.param : data.uri}">${data.title}</a>
-                  <div class="more">
-                    <svg width="20" height="24" viewBox="0 0 15 24" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.7484 5.49841C13.7484 6.46404 12.9656 7.24683 11.9999 7.24683C11.0343 7.24683 10.2515 6.46404 10.2515 5.49841C10.2515 4.53279 11.0343 3.75 11.9999 3.75C12.9656 3.75 13.7484 4.53279 13.7484 5.49841ZM13.7484 18.4985C13.7484 19.4641 12.9656 20.2469 11.9999 20.2469C11.0343 20.2469 10.2515 19.4641 10.2515 18.4985C10.2515 17.5328 11.0343 16.75 11.9999 16.75C12.9656 16.75 13.7484 17.5328 13.7484 18.4985ZM11.9999 13.7485C12.9656 13.7485 13.7484 12.9656 13.7484 12C13.7484 11.0343 12.9656 10.2515 11.9999 10.2515C11.0343 10.2515 10.2515 11.0343 10.2515 12C10.2515 12.9656 11.0343 13.7485 11.9999 13.7485Z"></path></svg>
-                  </div>
-                </h3>
-                <p class="bili-video-card__info--bottom" style="${(data.rcmd_reason && data.rcmd_reason.content == '已关注') ? 'color: #f00' : data.badge ? 'color: #ff8f00' : ''}">
-                  <a class="bili-video-card__info--owner" href="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : data.badge == '国创' ? '98627270' : '928123')}" target="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : data.badge == '国创' ? '98627270' : '928123')}" ${data.name ? 'title="' + data.name + '"' : 'style="width: 100%"'}>
-                    <svg class="bili-video-card__info--owner__up">
-                      <use xlink:href="#widget-up"></use>
-                    </svg>
-                    <span class="bili-video-card__info--author"${data.name ? '' : ' style="width: 90%"'}>${data.name || data.badge + ' - ' + data.desc}</span>
-                    <span class="bili-video-card__info--date"${data.goto == 'av' ? '' : ' style="display: none"'}>${returnDateTxt(data.ctime)}</span>
-                  </a>
-                </p>
-              </div>
-              <div class="ctrl">
-                <div class="tb">
-                  <div class="sp">
-                    <a href="javascript:;" data-aid="${data.param}" id="Jwatch">稍后再看</a>
-                    <a href="javascript:;" data-id="${'av' + data.param}" id="Jbbdown">BBDown下载</a>
-                    <a href="https://github.com/nilaoda/BBDown" target="https://github.com/nilaoda/BBDown" class="lk">BBDown说明</a>
-                  </div>
-                  <div class="dislike"${options.isAppType ? (options.accessKey ? '' : ' style="display: none"') : ' style="display: none"'}>
-                    <div class="ready">
-                      <div class="tlt">-- 减少相似内容推荐 --</div>
-                      <a href="javascript:;" class="dl" data-rsid="4" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">UP主</a>
-                      <a href="javascript:;" class="dl" data-rsid="1" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">不感兴趣</a>
-                      <a href="javascript:;" class="dl" data-rsid="12" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">此类内容过多</a>
-                      <a href="javascript:;" class="dl" data-rsid="13" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">推荐过</a>
-                    </div>
-                    <div class="over">
-                      <div class="reason"></div>
-                      减少相似内容推荐
-                      <a href="javascript:;" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}" id="Jreturn">撤销</a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>`;
+      if(options.isWeek){
+        if((data.ctime * 1000) >= new Date() - (7 * 24 * 60 * 60 * 1000)){
+          html += returnHtml(data);
+          if(options.refresh > 1) weekLength += 1
+        }
+      }else{
+        html += returnHtml(data)
+      }
     }
     $list.append(html);
     if(options.refresh > 1){
@@ -639,9 +569,120 @@
         $('#empty-list').css('padding-top', '20px')
       }
     }
+    if(options.isWeek && options.refresh == 1){
+      if(weekLength < forLength){
+        getRecommendList(2)
+      }
+    }
+    
     setTimeout(() => {
       isLoading = false
     }, 300)
+  }
+  function returnHtml(data){
+    let html = 
+      `<div class="bili-video-card" style="display: block !important">
+        <div class="bili-video-card__skeleton hide">
+          <div class="bili-video-card__skeleton--cover"></div>
+          <div class="bili-video-card__skeleton--info">
+            <div class="bili-video-card__skeleton--face"></div>
+            <div class="bili-video-card__skeleton--right">
+              <p class="bili-video-card__skeleton--text"></p>
+              <p class="bili-video-card__skeleton--text short"></p>
+              <p class="bili-video-card__skeleton--light"></p>
+            </div>
+          </div>
+        </div>
+        <div class="bili-video-card__wrap __scale-wrap">
+          <a href="${options.isAppType ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" target="${options.isAppType ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" class="cardwp">
+            <div class="bili-video-card__image __scale-player-wrap" data-go="${data.goto}" data-aid="${data.param}" data-duration="${data.goto == 'av' ? data.duration : ''}">
+              <div class="bili-video-card__image--wrap">
+                <div class="bili-watch-later" data-aid="${data.param}" style="display: none;">
+                  <svg class="bili-watch-later__icon"><use xlink:href="#widget-watch-later"></use></svg>
+                  <span class="bili-watch-later__tip" style="display: none;">稍后再看</span>
+                </div>
+                <picture class="v-img bili-video-card__cover">
+                  <source srcset="${data.cover.replace('http:', 'https:')}@672w_378h_1c_100q.webp" type="image/webp"/>
+                  <img src="${data.cover.replace('http:', 'https:')}@672w_378h_1c_100q" alt="${data.title}" loading="eager" onload=""/>
+                </picture>
+                <div class="v-inline-player"></div>
+                <div class="v-inline-danmaku"></div>
+              </div>
+              <div class="bili-video-card__mask">
+                ${data.badge ? `<div class="taglike" style="background: #ff8f00;color: #fff;">${data.badge}</div>` : data.rcmd_reason && data.rcmd_reason.content == '已关注' ? `<div class="taglike" style="background: #ff8f00;color: #fff;">已关注</div>` : ''}
+                <div class="bili-video-card__stats">
+                  <div class="bili-video-card__stats--left">
+                    <span class="bili-video-card__stats--item">
+                      <svg class="bili-video-card__stats--icon">
+                        <use xlink:href="#widget-play-count"></use>
+                      </svg>
+                      <span class="bili-video-card__stats--text">${formatNumber(data.play)}</span>
+                    </span>
+                    <span class="bili-video-card__stats--item"${data.goto == 'av' ? '' : ' style="display: none"'}>
+                      <svg class="bili-video-card__stats--icon"><use xlink:href="#widget-agree"></use></svg>
+                      <span class="bili-video-card__stats--text">${formatNumber(data.like)}</span>
+                    </span>
+                  </div>
+                  <span class="bili-video-card__stats__duration">${data.goto == 'av' ? formatNumber(data.duration, 'time') : formatNumber(data.favorite) + '收藏'}</span>
+                </div>
+              </div>
+            </div>
+          </a>
+          <div class="bili-video-card__info __scale-disable">
+            <div class="bvcd-left" ${data.name ? 'title="' + data.name + '"' : ''}>
+              <a href="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : '928123')}" target="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : data.badge == '国创' ? '98627270' : '928123')}">
+                <div class="v-avatar bili-video-card__avatar">
+                  <picture class="v-img v-avatar__face">
+                    <source srcset="${data.face.replace('http:', 'https:')}@72w_72h.webp" type="image/webp"/>
+                    <img src="${data.face.replace('http:', 'https:')}@72w_72h" alt="${data.name || data.badge}" loading="lazy" onload=""/>
+                  </picture>
+                </div>
+              </a>
+            </div>
+            <div class="bili-video-card__info--right">
+              <h3 class="bili-video-card__info--tit" title="${data.title}">
+                <a href="${options.isAppType ? 'https://www.bilibili.com/video/av' + data.param : data.uri}" target="${options.isAppType ? 'https://www.bilibili.com/video/av' + data.param : data.uri}">${data.title}</a>
+                <div class="more">
+                  <svg width="20" height="24" viewBox="0 0 15 24" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.7484 5.49841C13.7484 6.46404 12.9656 7.24683 11.9999 7.24683C11.0343 7.24683 10.2515 6.46404 10.2515 5.49841C10.2515 4.53279 11.0343 3.75 11.9999 3.75C12.9656 3.75 13.7484 4.53279 13.7484 5.49841ZM13.7484 18.4985C13.7484 19.4641 12.9656 20.2469 11.9999 20.2469C11.0343 20.2469 10.2515 19.4641 10.2515 18.4985C10.2515 17.5328 11.0343 16.75 11.9999 16.75C12.9656 16.75 13.7484 17.5328 13.7484 18.4985ZM11.9999 13.7485C12.9656 13.7485 13.7484 12.9656 13.7484 12C13.7484 11.0343 12.9656 10.2515 11.9999 10.2515C11.0343 10.2515 10.2515 11.0343 10.2515 12C10.2515 12.9656 11.0343 13.7485 11.9999 13.7485Z"></path></svg>
+                </div>
+              </h3>
+              <p class="bili-video-card__info--bottom" style="${(data.rcmd_reason && data.rcmd_reason.content == '已关注') ? 'color: #f00' : data.badge ? 'color: #ff8f00' : ''}">
+                <a class="bili-video-card__info--owner" href="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : data.badge == '国创' ? '98627270' : '928123')}" target="https://space.bilibili.com/${data.mid || (data.badge == '纪录片' ? '7584632' : data.badge == '电影' ? '15773384' : data.badge == '电视剧' ? '4856007' : data.badge == '国创' ? '98627270' : '928123')}" ${data.name ? 'title="' + data.name + '"' : 'style="width: 100%"'}>
+                  <svg class="bili-video-card__info--owner__up">
+                    <use xlink:href="#widget-up"></use>
+                  </svg>
+                  <span class="bili-video-card__info--author"${data.name ? '' : ' style="width: 90%"'}>${data.name || data.badge + ' - ' + data.desc}</span>
+                  <span class="bili-video-card__info--date"${data.goto == 'av' ? '' : ' style="display: none"'}>${returnDateTxt(data.ctime)}</span>
+                </a>
+              </p>
+            </div>
+            <div class="ctrl">
+              <div class="tb">
+                <div class="sp">
+                  <a href="javascript:;" data-aid="${data.param}" id="Jwatch">稍后再看</a>
+                  <a href="javascript:;" data-id="${'av' + data.param}" id="Jbbdown">BBDown下载</a>
+                  <a href="https://github.com/nilaoda/BBDown" target="https://github.com/nilaoda/BBDown" class="lk">BBDown说明</a>
+                </div>
+                <div class="dislike"${options.isAppType ? (options.accessKey ? '' : ' style="display: none"') : ' style="display: none"'}>
+                  <div class="ready">
+                    <div class="tlt">-- 减少相似内容推荐 --</div>
+                    <a href="javascript:;" class="dl" data-rsid="4" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">UP主</a>
+                    <a href="javascript:;" class="dl" data-rsid="1" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">不感兴趣</a>
+                    <a href="javascript:;" class="dl" data-rsid="12" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">此类内容过多</a>
+                    <a href="javascript:;" class="dl" data-rsid="13" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}">推荐过</a>
+                  </div>
+                  <div class="over">
+                    <div class="reason"></div>
+                    减少相似内容推荐
+                    <a href="javascript:;" data-goto="${data.goto}" data-id="${data.param}" data-mid="${data.mid}" data-rid="${data.tid}" data-tagid="${data.tag?.tag_id}" id="Jreturn">撤销</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    return html
   }
   function formatNumber(input, format = 'number'){
     if (format == 'time') {
