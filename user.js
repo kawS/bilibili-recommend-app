@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      6.4
+// @version      6.41
 // @description  网页端app首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -70,7 +70,7 @@
     intiHtml();
     initEvent();
     checkAccessKey();
-    getRecommendList();
+    !options.isAppType && options.isWeek ? getRecommendList(6) : getRecommendList();
   }
   function setSize(width){
     let row = options.rows = $(window).height() > 1300 ? 5 : 3;
@@ -493,7 +493,7 @@
         let nowData = options.isAppType ? d : d.item;
         if(options.isWeek){
           for(let item of nowData){
-            if((item.ctime * 1000) >= new Date() - (7 * 24 * 60 * 60 * 1000)){
+            if(((options.isAppType ? item.ctime : item.pubdate) * 1000) >= new Date() - (7 * 24 * 60 * 60 * 1000)){
               data.push(item)
             }
           }
