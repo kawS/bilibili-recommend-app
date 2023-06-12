@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      6.3
+// @version      6.4
 // @description  网页端app首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -75,7 +75,7 @@
   function setSize(width){
     let row = options.rows = $(window).height() > 1300 ? 5 : 3;
     if(isNewTest){
-      if(width <=1400){
+      if(width < 1400){
         options.rowSizes = 4
         options.sizes = 4 * row
       }else{
@@ -343,9 +343,8 @@
     })
     
     $(window).on('scroll', function(){
-      if(options.refresh == 1) return;
-      const $this = $(this);
-      if($this.scrollTop() + $(window).height() > ($('#empty-list').offset().top - options.oneItemHeight * 2)){
+      if(options.refresh <= 3) return;
+      if(($(this).scrollTop() + $(window).height()) > ($('#empty-list').offset().top - (options.oneItemHeight * 2))){
         if(isLoading) return;
         isLoading = true;
         options.clientWidth = $(window).width();
@@ -485,17 +484,40 @@
     const token = options.accessKey ? '&access_key=' + options.accessKey : '';
     const url = options.isAppType ? 'https://app.bilibili.com/x/feed/index?appkey=27eb53fc9058f8c3&build=1&mobi_app=android&idx=' : `https://api.bilibili.com/x/web-interface/index/top/rcmd?fresh_type=3&version=1&ps=10&fresh_idx=${options.refresh}&fresh_idx_1h=${options.refresh}`
     // 4-20 5-25 6-30 7-35
-    for(let i=0;i<(rowLength || options.rows);i++){
+    let last = [];
+    for(let i=0;i<(rowLength || 3);i++){
       let data = [];
       let list = null;
       let uri = options.isAppType ? (url + i + ((Date.now() / 1000).toFixed(0)) + token) : url;
       await getRecommend(uri).then(d => {
-        options.isAppType ? data.push(d) : data.push(d.item);
+        let nowData = options.isAppType ? d : d.item;
+        if(options.isWeek){
+          for(let item of nowData){
+            if((item.ctime * 1000) >= new Date() - (7 * 24 * 60 * 60 * 1000)){
+              data.push(item)
+            }
+          }
+        }else{
+          data = nowData
+        }
         if(data.length > 0){
-          list = options.isAppType ? data.flat() : new2old(data);
+          let diff = [];
+          if(options.isWeek && last.length > 0){
+            for(let item of data){
+              if(!last.includes(item)){
+                diff.push(item)
+              }
+            }
+          }
+          if(diff.length > 0){
+            list = options.isAppType ? diff : new2old(diff);
+          }else{
+            list = options.isAppType ? data : new2old(data);
+          }
+          last = list;
           updateRecommend(list)
         }
-        options.refresh += 1;
+        options.refresh += 1
       }).catch(err => {
         i--;
         console.log(err)
@@ -548,33 +570,19 @@
   function updateRecommend(list){
     let html = '';
     let forLength = options.rowSizes == 4 ? 8 : 10;
-    let weekLength = 0;
     for(let i=0;i<forLength;i++){
       let data = list[i];
       if(!data){
         continue
       }
-      if(options.isWeek){
-        if((data.ctime * 1000) >= new Date() - (7 * 24 * 60 * 60 * 1000)){
-          html += returnHtml(data);
-          if(options.refresh > 1) weekLength += 1
-        }
-      }else{
-        html += returnHtml(data)
-      }
+      html += returnHtml(data)
     }
     $list.append(html);
     if(options.refresh > 1){
       if(!$('#empty-list').attr('style')){
-        $('#empty-list').css('padding-top', '20px')
+        $('#empty-list').css('padding-top', '20px').find('.bili-video-card').slice(options.rowSizes).remove()
       }
     }
-    if(options.isWeek && options.refresh == 1){
-      if(weekLength < forLength){
-        getRecommendList(2)
-      }
-    }
-    
     setTimeout(() => {
       isLoading = false
     }, 300)
