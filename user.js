@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      6.41
+// @version      6.5
 // @description  网页端app首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -581,6 +581,10 @@
     if(options.refresh > 1){
       if(!$('#empty-list').attr('style')){
         $('#empty-list').css('padding-top', '20px').find('.bili-video-card').slice(options.rowSizes).remove()
+      }
+    }else{
+      if($(window).height() > 1440){
+        getRecommendList()
       }
     }
     setTimeout(() => {
