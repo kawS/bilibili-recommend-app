@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      6.5
+// @version      6.6
 // @description  网页端app首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -58,7 +58,7 @@
   function init(){
     if(location.href.startsWith('https://www.mcbbs.net/template/mcbbs/image/special_photo_bg.png?')){
       window.stop();
-      return window.top.postMessage(location.href, 'https://www.bilibili.com')
+      return window.opener.postMessage(location.href, 'https://www.bilibili.com')
     }
     localStorage.setItem('bilibili_player_force_DolbyAtmos&8K&HDR', 1);
     Object.defineProperty(navigator, 'userAgent', {
@@ -402,10 +402,9 @@
       isWait = false;
       return
     }
-    const $iframe = $(`<iframe src='${url}' style="display: none;" />`);
-    $iframe.appendTo($('body'));
+    const win = window.open(url, '_blank', 'popup=true,width=60,height=90');
     let timeout = setTimeout(() => {
-      $iframe.remove();
+      win.close();
       $el.find('span').text('获取授权');;
       toast('获取授权超时')
     }, 5000);
@@ -421,7 +420,7 @@
         toast('获取授权成功，1s后刷新');
         $el.find('span').text('删除授权');;
         clearTimeout(timeout);
-        $iframe.remove();
+        win.close();
         setTimeout(() => {
           location.reload()
         }, 1000)
