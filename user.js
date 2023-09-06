@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      6.6
+// @version      6.7
 // @description  网页端app首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -405,7 +405,7 @@
     const win = window.open(url, '_blank', 'popup=true,width=60,height=90');
     let timeout = setTimeout(() => {
       win.close();
-      $el.find('span').text('获取授权');;
+      $el.find('span').text('获取授权');
       toast('获取授权超时')
     }, 5000);
     window.onmessage = ev => {
@@ -418,7 +418,7 @@
         GM_setValue('biliAppHomeKey', options.accessKey = key[1]);
         GM_setValue('biliAppHomeKeyDate',  options.dateKey = +new Date());
         toast('获取授权成功，1s后刷新');
-        $el.find('span').text('删除授权');;
+        $el.find('span').text('删除授权');
         clearTimeout(timeout);
         win.close();
         setTimeout(() => {
@@ -780,14 +780,14 @@
       try {
         res = await fetch(`https://api.bilibili.com/pvideo?aid=${aid}`);
       } catch (error) {
-        toast(error)
+        // toast(error)
       }
       try {
         data = await res.json();
+        pvData = $el[0].pvData = data?.data;
       } catch (error) {
-        toast(error)
+        // toast(error)
       }
-      pvData = $el[0].pvData = data.data;
     }
     setPosition($el, e, pvData)
   }
@@ -800,14 +800,14 @@
       try {
         res = await fetch(`https://api.bilibili.com/x/v2/dm/ajax?aid=${aid}`);
       } catch (error) {
-        toast(error)
+        // toast(error)
       }
       try {
         data = await res.json();
+        danmakuData = $el[0].danmakuData = data?.data
       } catch (error) {
-        toast(error)
+        // toast(error)
       }
-      danmakuData = $el[0].danmakuData = data.data
     }
     setDanmakuRoll($el, danmakuData);
   }
