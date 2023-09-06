@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站首页推荐
 // @namespace    kasw
-// @version      6.7
+// @version      6.8
 // @description  网页端app首页推荐视频
 // @author       kaws
 // @match        *://www.bilibili.com/*
@@ -778,7 +778,8 @@
       let res = null;
       let data = null;
       try {
-        res = await fetch(`https://api.bilibili.com/pvideo?aid=${aid}`);
+        // res = await fetch(`https://api.bilibili.com/pvideo?aid=${aid}`);
+        res = await fetch(`https://api.bilibili.com/x/player/videoshot?aid=${aid}&index=1`)
       } catch (error) {
         // toast(error)
       }
@@ -847,7 +848,7 @@
     }
     $tarDom.html(`
       <div class="pv-box" style="background: url(https:${imgUrl}) ${x < 0 ? 0 : -x}px ${y < 0 ? 0 : -y}px no-repeat;background-size: ${sizeX}px ${sizeY}px;height: 100%;pointer-events:none"></div>
-      <div class="pv-bar" style="position: absolute;left: 0;bottom: 0;background: #fb7299;width: ${bar}%;height: 2px;z-index: 2"></div>
+      <div class="pv-bar" style="position: absolute;left: 0;top: 0;background: #fb7299;width: ${bar}%;height: 3px;z-index: 2"></div>
     `)
   }
   function setDanmakuRoll($el, danmakuData){
