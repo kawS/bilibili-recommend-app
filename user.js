@@ -52,7 +52,7 @@
     accessKey: GM_getValue('biliAppHomeKey'),
     dateKey: GM_getValue('biliAppHomeKeyDate'),
     isShowDanmaku: typeof GM_getValue('biliAppDanmaku') == 'undefined' ? false : GM_getValue('biliAppDanmaku'),
-    isAppType: typeof GM_getValue('biliAppType') == 'undefined' ? true : GM_getValue('biliAppType'), // true:app;false:pc
+    isAppType: false, // typeof GM_getValue('biliAppType') == 'undefined' ? true : GM_getValue('biliAppType'), // true:app;false:pc
     isWeek:  typeof GM_getValue('biliWeek') == 'undefined' ? false : GM_getValue('biliWeek')
   }
   function init(){
@@ -431,6 +431,7 @@
     isWait = false;
   }
   function checkAccessKey(){
+    $('#JaccessKey, #JUseApp').hide();
     const nowDate = +new Date();
     if(!options.dateKey) return;
     if(options.dateKey == -1){
